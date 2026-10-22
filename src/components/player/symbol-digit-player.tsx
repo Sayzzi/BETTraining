@@ -2,16 +2,18 @@
 
 import { symbolDigitKey, symbolDigitSpec, type SymbolDigitSpec, type SymbolDigitStimulus } from "@/engine/symbol-digit";
 import { ChoicePlayer, choiceEngine } from "./choice-player";
+import type { FixedRun } from "./use-exercise-run";
 import { SymbolGlyph } from "./symbol-glyph";
 
 // The key is reshuffled from each run's seed.
 const ENGINE = choiceEngine("symbol_digit", (seed) => symbolDigitSpec(symbolDigitKey(seed)));
 const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-export function SymbolDigitPlayer() {
+export function SymbolDigitPlayer({ fixed }: { fixed?: FixedRun } = {}) {
   return (
     <ChoicePlayer<SymbolDigitStimulus>
       engine={ENGINE}
+      fixed={fixed}
       namespace="symbolDigit"
       options={DIGITS.map((digit) => ({
         id: String(digit),

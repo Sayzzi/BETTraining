@@ -132,6 +132,16 @@ describe("choice task run", () => {
     expect(run.trials.at(-1)!.difficulty).toMatchObject({ level: 2 });
   });
 
+  it("keeps the level fixed when the configuration is not adaptive", () => {
+    let run = startChoiceTask({ ...CONFIG, adaptive: false }, SPEC, 1, 0, 6);
+    let at = 0;
+    for (let i = 0; i < 8; i++) {
+      [run, at] = nextStimulus(run, at);
+      run = respond(run, at + 300, run.current!.stimulus.side, "keyboard");
+    }
+    expect(run.level).toBe(6);
+  });
+
   it("draws incongruent stimuli at the rate set by the level", () => {
     const count = (level: number) => {
       let run = startChoiceTask({ ...CONFIG, durationMs: 10_000_000 }, SPEC, 3, 0, level);

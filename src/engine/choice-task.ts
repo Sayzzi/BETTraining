@@ -33,6 +33,8 @@ export type ChoiceTaskConfig = {
   minLevel: number;
   maxLevel: number;
   target: number;
+  /** False freezes the level (assessments must stay comparable). Defaults to true. */
+  adaptive?: boolean;
 };
 
 export type ChoicePhase = "practice" | "practice_done" | "main" | "done";
@@ -184,7 +186,7 @@ function close<S>(
     ...run,
     trials,
     // Practice never moves the level.
-    level: practice ? run.level : updateLevel(run.level, correct, run.staircase),
+    level: practice || run.config.adaptive === false ? run.level : updateLevel(run.level, correct, run.staircase),
     current: null,
     nextOnsetMs: closedAt + parameters.itiMs,
     phase: practice && practiced >= run.config.practiceTrials ? "practice_done" : run.phase,

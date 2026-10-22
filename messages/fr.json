@@ -37,15 +37,22 @@
   },
   "home": {
     "greeting": "Bonjour, {name}.",
-    "intro": "Ton entraînement commencera par un bilan : il mesure tes quatre capacités cognitives à froid, puis en état de fatigue. Le bilan arrive dans une prochaine version.",
     "loading": "Chargement de ton espace…",
     "signOut": "Se déconnecter",
     "signingOut": "Déconnexion…",
-    "freePracticeIntro": "En attendant, tu peux t'entraîner librement sur un exercice.",
-    "freePracticeLink": "Ouvrir l'entraînement libre"
+    "freePracticeIntro": "Tu peux aussi t'entraîner librement sur un exercice.",
+    "freePracticeLink": "Ouvrir l'entraînement libre",
+    "assessmentFirstTitle": "Commence par ton bilan",
+    "assessmentFirstBody": "Avant ta première séance du jour, le bilan mesure tes quatre capacités cognitives à froid, puis en état de fatigue. L'algorithme part de ces résultats pour régler tes séances. Compte environ 40 minutes.",
+    "assessmentFirstCta": "Passer mon bilan",
+    "lastAssessment": "Ton dernier bilan date du {date}. Ta résistance à la fatigue était de {resistance}.",
+    "seeAssessment": "Voir mon bilan",
+    "retakeAssessment": "Refaire un bilan",
+    "dailySessionSoon": "La séance du jour, générée à partir de ton bilan, arrive dans une prochaine version."
   },
   "nav": {
-    "freePractice": "Entraînement libre"
+    "freePractice": "Entraînement libre",
+    "assessment": "Bilan"
   },
   "freePractice": {
     "title": "Entraînement libre",
@@ -93,7 +100,8 @@
       "stroop": "Résultats du Stroop",
       "flanker": "Résultats du flanker",
       "choice_rt": "Résultats du temps de réaction à choix",
-      "symbol_digit": "Résultats des symboles-chiffres"
+      "symbol_digit": "Résultats des symboles-chiffres",
+      "pvt_b": "Résultats du PVT-B"
     },
     "errors": "Erreurs",
     "misses": "Sans réponse",
@@ -125,7 +133,9 @@
     "saving": "Enregistrement de tes résultats…",
     "errorTitle": "L'exercice n'a pas pu être enregistré",
     "errorBody": "Tes réponses sont gardées sur cet appareil et seront renvoyées automatiquement à ta prochaine visite. Vérifie ta connexion, puis reviens à la liste des exercices.",
-    "backToList": "Revenir aux exercices"
+    "backToList": "Revenir aux exercices",
+    "fixedDuration": "Durée du test : {seconds} s.",
+    "startTest": "Commencer le test"
   },
   "nback": {
     "title": "N-back",
@@ -193,5 +203,72 @@
     "instructions": "Une légende associe neuf symboles aux chiffres de 1 à 9. Un symbole apparaît : donne son chiffre le plus vite possible. La légende change à chaque séance.",
     "keys": "Au clavier : les touches 1 à 9. Sur mobile, touche le chiffre en bas de l'écran.",
     "adaptive": "La difficulté s'ajuste à tes réponses : moins de temps pour répondre et moins d'attente entre deux symboles quand tu réussis. L'exercice reprendra à ton niveau la prochaine fois."
+  },
+  "assessment": {
+    "title": "Ton bilan",
+    "intro": "Le bilan mesure tes quatre capacités cognitives (attention soutenue, mémoire de travail, inhibition et vitesse de traitement) puis ta résistance à la fatigue mentale. Il est toujours identique, pour que tes bilans successifs restent comparables.",
+    "parts": {
+      "cold": {
+        "title": "Les tests à froid",
+        "summary": "Quatre tests courts, environ 9 minutes.",
+        "briefing": "Quatre tests courts, un par capacité : vigilance, n-back, Stroop et symboles-chiffres. Chacun commence par quelques essais d'entraînement."
+      },
+      "bet": {
+        "title": "Le bloc BET",
+        "summary": "15 minutes de Stroop exigeant, pour provoquer de la fatigue mentale.",
+        "briefing": "15 minutes de Stroop, sans adaptation de la difficulté. Le but est de fatiguer ton cerveau : reste concentré et réponds du mieux possible jusqu'au bout."
+      },
+      "fatigued": {
+        "title": "Les tests en état de fatigue",
+        "summary": "Les mêmes quatre tests, environ 9 minutes.",
+        "briefing": "Les mêmes quatre tests qu'au début, sans entraînement cette fois. L'écart avec tes résultats à froid mesure ta résistance à la fatigue."
+      }
+    },
+    "advice": "Fais-le au calme, d'une traite, et de préférence en dehors d'une journée déjà épuisante. Si tu t'arrêtes en cours de route, le bilan est marqué incomplet et tu pourras le recommencer.",
+    "start": "Commencer le bilan",
+    "starting": "Préparation…",
+    "partOf": "Partie {part} sur 3",
+    "continue": "Continuer",
+    "stepLabel": "Bilan, partie {part} sur 3, test {test} sur {total}",
+    "stepLabelBet": "Bilan, partie {part} sur 3, bloc BET",
+    "interrupted": "Ton bilan a été interrompu et marqué incomplet. Tu peux le recommencer quand tu es prêt.",
+    "finishing": "Calcul de tes résultats…",
+    "errorTitle": "Le bilan n'a pas pu être enregistré",
+    "errorBody": "Vérifie ta connexion, puis recommence le bilan. Les réponses déjà envoyées sont conservées.",
+    "restart": "Recommencer le bilan"
+  },
+  "assessmentResults": {
+    "title": "Résultats du bilan",
+    "loading": "Chargement du bilan…",
+    "incomplete": "Ce bilan a été interrompu avant la fin : il n'a pas de résultats. Recommence un bilan complet pour mesurer ton niveau.",
+    "pending": "Les résultats de ce bilan ne sont pas encore calculés.",
+    "resistanceLabel": "Résistance à la fatigue",
+    "resistanceExplanation": "Ce que tu conserves de ta performance une fois fatigué, en moyenne sur les quatre capacités. 100 % signifie aucune baisse.",
+    "domainsTitle": "Par capacité",
+    "domainsIntro": "Ton score à froid, puis après le bloc BET. La variation montre ce que la fatigue t'a coûté sur chaque capacité.",
+    "domain": "Capacité",
+    "cold": "À froid",
+    "fatigued": "Fatigué",
+    "change": "Variation",
+    "scoreUnit": "Score : bonnes réponses par seconde de réaction. Il combine vitesse et précision.",
+    "domains": {
+      "sustained_attention": "Attention soutenue",
+      "working_memory": "Mémoire de travail",
+      "inhibition": "Inhibition",
+      "processing_speed": "Vitesse de traitement"
+    },
+    "tests": {
+      "pvt_b": "Vigilance (PVT-B)",
+      "nback": "N-back",
+      "stroop": "Stroop",
+      "symbol_digit": "Symboles-chiffres"
+    },
+    "blocks": {
+      "cold": "À froid",
+      "bet": "Bloc BET",
+      "fatigued": "Fatigué"
+    },
+    "detailTitle": "Détail des tests",
+    "home": "Retour à l'accueil"
   }
 }

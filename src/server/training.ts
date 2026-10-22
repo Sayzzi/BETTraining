@@ -1,10 +1,10 @@
 // Application layer for training sessions. Every function takes the database
 // and the signed-in user's id, and only touches that user's rows.
 
-import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "@/db/client";
-import { difficultyState, exerciseRun, trainingSession, trial } from "@/db/schema";
+import { assessment, difficultyState, exerciseRun, trainingSession, trial } from "@/db/schema";
 import {
   computeExerciseResults,
   describeDifficulty,
@@ -25,12 +25,15 @@ export class NotFoundError extends Error {}
 
 const inputMode = z.enum(["keyboard", "touch", "mouse"]);
 
-export const startFreePracticeInput = z.object({
-  exercise: z.enum(FREE_PRACTICE_EXERCISES),
-  durationMin: z.union(FREE_PRACTICE_DURATIONS_MIN.map((value) => z.literal(value))),
+export const deviceInput = z.object({
   device: z.enum(["desktop", "tablet", "mobile"]),
   inputMode,
   userAgent: z.string().max(512).optional(),
+});
+
+export const startFreePracticeInput = deviceInput.extend({
+  exercise: z.enum(FREE_PRACTICE_EXERCISES),
+  durationMin: z.union(FREE_PRACTICE_DURATIONS_MIN.map((value) => z.literal(value))),
 });
 
 export const trialInput = z.object({
@@ -144,10 +147,17 @@ export async function completeRun(
           set: { level: endLevel, updatedAt: endedAt },
         });
     }
-    await tx
-      .update(trainingSession)
-      .set({ status: "completed", endedAt })
-      .where(eq(trainingSession.id, run.sessionId));
+    // A session with several runs (an assessment) completes with its last run.
+    const [{ open }] = await tx
+      .select({ open: count() })
+      .from(exerciseRun)
+      .where(and(eq(exerciseRun.sessionId, run.sessionId), ne(exerciseRun.status, "completed")));
+    if (open === 0) {
+      await tx
+        .update(trainingSession)
+        .set({ status: "completed", endedAt })
+        .where(eq(trainingSession.id, run.sessionId));
+    }
   });
   return { status: "completed", results };
 }
@@ -217,7 +227,7 @@ export async function loadTrials(db: Database, runId: string): Promise<Trial[]> 
 
 export type { Pause };
 
-type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+export type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 async function findOwnedRun(db: Database | Transaction, userId: string, runId: string) {
   if (!z.uuid().safeParse(runId).success) throw new NotFoundError("Run not found");
@@ -241,7 +251,7 @@ export async function currentLevel(db: Database | Transaction, userId: string, e
   return saved?.level ?? difficulty.initial;
 }
 
-async function abandonOpenSessions(tx: Transaction, userId: string) {
+export async function abandonOpenSessions(tx: Transaction, userId: string) {
   const endedAt = new Date();
   const open = await tx
     .update(trainingSession)
@@ -253,6 +263,10 @@ async function abandonOpenSessions(tx: Transaction, userId: string) {
 
 async function markRunsIncomplete(tx: Transaction, sessionIds: string[], endedAt: Date) {
   if (sessionIds.length === 0) return;
+  await tx
+    .update(assessment)
+    .set({ status: "incomplete" })
+    .where(and(inArray(assessment.sessionId, sessionIds), eq(assessment.status, "in_progress")));
   await tx
     .update(exerciseRun)
     .set({ status: "incomplete", endedAt })

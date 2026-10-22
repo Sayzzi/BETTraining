@@ -30,7 +30,18 @@ export type ExerciseEngine<R extends RunShape> = {
 
 export type Stage = "setup" | "starting" | "running" | "saving" | "error";
 
+/** A run created ahead of time by a fixed protocol (the assessment), with its own next step. */
+export type FixedRun = {
+  step: StartedRun;
+  /** Where the run sits in the protocol, such as "Partie 1 sur 3, test 2 sur 4". */
+  label: string;
+  onCompleted: () => void;
+  onStop: () => void;
+};
+
 type Options<R> = {
+  /** Plays a pre-created run instead of starting a free-practice session. */
+  fixed?: FixedRun;
   /** Paints per-frame details (such as a counter) without re-rendering React. */
   onFrame?: (run: R, at: number) => void;
   /** Exercise-specific response keys. Escape (pause) is handled here. */
@@ -67,7 +78,9 @@ export function useExerciseRun<R extends RunShape>(engine: ExerciseEngine<R>, op
       try {
         await uploaderRef.current?.flush();
         await completeRunRequest(runId, run.trials, run.pauses);
-        router.push(`/entrainement/resultats/${runId}`);
+        const fixed = optionsRef.current.fixed;
+        if (fixed) fixed.onCompleted();
+        else router.push(`/entrainement/resultats/${runId}`);
       } catch {
         setStage("error");
       }
@@ -156,13 +169,15 @@ export function useExerciseRun<R extends RunShape>(engine: ExerciseEngine<R>, op
   async function start(durationMin: number) {
     setStage("starting");
     try {
-      const started = await startFreePracticeRequest({
-        exercise: engine.exercise,
-        durationMin,
-        device: detectDevice(),
-        inputMode: detectInputMode(),
-        userAgent: navigator.userAgent.slice(0, 512),
-      });
+      const started =
+        optionsRef.current.fixed?.step ??
+        (await startFreePracticeRequest({
+          exercise: engine.exercise,
+          durationMin,
+          device: detectDevice(),
+          inputMode: detectInputMode(),
+          userAgent: navigator.userAgent.slice(0, 512),
+        }));
       idsRef.current = { sessionId: started.sessionId, runId: started.runId };
       uploaderRef.current = new TrialUploader(started.runId);
       const now = performance.now();
@@ -178,7 +193,9 @@ export function useExerciseRun<R extends RunShape>(engine: ExerciseEngine<R>, op
     if (idsRef.current) abandonSessionRequest(idsRef.current.sessionId);
     uploaderRef.current?.flushOnExit();
     runRef.current = null;
-    router.push("/entrainement");
+    const fixed = optionsRef.current.fixed;
+    if (fixed) fixed.onStop();
+    else router.push("/entrainement");
   }
 
   return {

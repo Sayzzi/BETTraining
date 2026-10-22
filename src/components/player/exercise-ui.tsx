@@ -14,20 +14,52 @@ export function ExerciseIntro({
   instructions,
   starting,
   onStart,
+  fixed,
 }: {
   title: string;
   domain: string;
   instructions: ReactNode;
   starting: boolean;
   onStart: (durationMin: number) => void;
+  /** Protocol step: shows its place and fixed duration instead of the duration picker. */
+  fixed?: { label: string; durationMs: number };
 }) {
   const t = useTranslations("player");
   const [durationMin, setDurationMin] = useState<number>(FREE_PRACTICE_DURATIONS_MIN[0]);
   return (
     <section className="max-w-[60ch]">
+      {fixed ? <p className="mb-3 text-sm font-semibold text-schiste">{fixed.label}</p> : null}
       <h1 className="type-wide text-4xl font-extrabold">{title}</h1>
       <p className="mt-2 text-lg text-schiste">{domain}</p>
       <div className="mt-8 space-y-4 text-lg">{instructions}</div>
+      {fixed ? (
+        <>
+          <p className="mt-8 font-semibold">{t("fixedDuration", { seconds: Math.round(fixed.durationMs / 1000) })}</p>
+          <button type="button" onClick={() => onStart(0)} disabled={starting} className={`mt-8 ${PRIMARY}`}>
+            {starting ? t("starting") : t("startTest")}
+          </button>
+        </>
+      ) : (
+        <FreePracticeStart durationMin={durationMin} onDurationChange={setDurationMin} starting={starting} onStart={onStart} />
+      )}
+    </section>
+  );
+}
+
+function FreePracticeStart({
+  durationMin,
+  onDurationChange: setDurationMin,
+  starting,
+  onStart,
+}: {
+  durationMin: number;
+  onDurationChange: (minutes: number) => void;
+  starting: boolean;
+  onStart: (durationMin: number) => void;
+}) {
+  const t = useTranslations("player");
+  return (
+    <>
       <fieldset className="mt-8">
         <legend className="text-sm font-semibold">{t("durationLabel")}</legend>
         <div className="mt-3 flex gap-2">
@@ -53,7 +85,7 @@ export function ExerciseIntro({
       <button type="button" onClick={() => onStart(durationMin)} disabled={starting} className={`mt-8 ${PRIMARY}`}>
         {starting ? t("starting") : t("start")}
       </button>
-    </section>
+    </>
   );
 }
 

@@ -17,7 +17,7 @@ import {
 import type { InputMode } from "@/engine/trial";
 import { pointerInput } from "./device";
 import { ErrorPanel, ExerciseIntro, ExerciseStage, PausedPanel, PracticeDonePanel, SavingPanel } from "./exercise-ui";
-import { useExerciseRun, type ExerciseEngine } from "./use-exercise-run";
+import { useExerciseRun, type ExerciseEngine, type FixedRun } from "./use-exercise-run";
 
 const KEYS: Record<string, NBackChoice> = {
   f: "different",
@@ -47,12 +47,13 @@ const NBACK_ENGINE: ExerciseEngine<NBackRun> = {
     ].join("|"),
 };
 
-export function NBackPlayer() {
+export function NBackPlayer({ fixed }: { fixed?: FixedRun } = {}) {
   const t = useTranslations("nback");
   const tPlayer = useTranslations("player");
   const router = useRouter();
 
   const { stage, run, viewAt, start, stop, apply, togglePause, beginMain: begin } = useExerciseRun(NBACK_ENGINE, {
+    fixed,
     onKeyDown: (event) => {
       const choice = KEYS[event.key];
       if (!choice) return;
@@ -75,10 +76,11 @@ export function NBackPlayer() {
         }
         starting={stage === "starting"}
         onStart={start}
+        fixed={fixed && { label: fixed.label, durationMs: fixed.step.config.durationMs }}
       />
     );
   }
-  if (stage === "error" || !run) return <ErrorPanel onBack={() => router.push("/entrainement")} />;
+  if (stage === "error" || !run) return <ErrorPanel onBack={() => (fixed ? fixed.onStop() : router.push("/entrainement"))} />;
 
   const paused = run.pausedAt !== null;
   const active = run.phase === "practice" || run.phase === "main";

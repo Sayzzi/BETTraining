@@ -11,6 +11,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {t("brand")}
         </Link>
         <nav className="flex items-center gap-5 whitespace-nowrap">
+          <Link href="/bilan" className="text-sm font-semibold underline-offset-4 hover:underline">
+            {t("nav.assessment")}
+          </Link>
           <Link href="/entrainement" className="text-sm font-semibold underline-offset-4 hover:underline">
             {t("nav.freePractice")}
           </Link>

@@ -3,14 +3,16 @@
 import { useTranslations } from "next-intl";
 import { FLANKER_SPEC, flankerDisplay, type FlankerStimulus } from "@/engine/flanker";
 import { ChoicePlayer, choiceEngine } from "./choice-player";
+import type { FixedRun } from "./use-exercise-run";
 
 const ENGINE = choiceEngine("flanker", FLANKER_SPEC);
 
-export function FlankerPlayer() {
+export function FlankerPlayer({ fixed }: { fixed?: FixedRun } = {}) {
   const t = useTranslations("flanker");
   return (
     <ChoicePlayer<FlankerStimulus>
       engine={ENGINE}
+      fixed={fixed}
       namespace="flanker"
       options={[
         { id: "left", label: t("left"), keyHint: t("leftKey"), keys: ["f", "F", "ArrowLeft"] },

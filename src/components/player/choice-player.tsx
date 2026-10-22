@@ -18,7 +18,7 @@ import type { FreePracticeExercise } from "@/engine/exercises";
 import type { InputMode } from "@/engine/trial";
 import { pointerInput } from "./device";
 import { ErrorPanel, ExerciseIntro, ExerciseStage, PausedPanel, PracticeDonePanel, SavingPanel } from "./exercise-ui";
-import { useExerciseRun, type ExerciseEngine } from "./use-exercise-run";
+import { useExerciseRun, type ExerciseEngine, type FixedRun } from "./use-exercise-run";
 
 export type ChoiceOption = { id: string; label: string; keyHint: string; keys: string[]; swatch?: string };
 
@@ -57,6 +57,7 @@ export function ChoicePlayer<S>({
   renderStimulus,
   renderIdle,
   renderLegend,
+  fixed,
 }: {
   engine: ExerciseEngine<ChoiceTaskRun<S>>;
   /** Message namespace with title, domain, instructions, keys and adaptive. */
@@ -69,6 +70,7 @@ export function ChoicePlayer<S>({
   renderIdle?: () => ReactNode;
   /** Reference shown above the stimulus for the whole run, such as a symbol key. */
   renderLegend?: (run: ChoiceTaskRun<S>) => ReactNode;
+  fixed?: FixedRun;
 }) {
   const t = useTranslations(namespace);
   const tChoice = useTranslations("choiceTask");
@@ -76,6 +78,7 @@ export function ChoicePlayer<S>({
   const router = useRouter();
 
   const { stage, run, start, stop, apply, togglePause, beginMain: begin } = useExerciseRun(engine, {
+    fixed,
     onKeyDown: (event) => {
       const option = options.find((o) => o.keys.includes(event.key));
       if (!option) return;
@@ -98,10 +101,11 @@ export function ChoicePlayer<S>({
         }
         starting={stage === "starting"}
         onStart={start}
+        fixed={fixed && { label: fixed.label, durationMs: fixed.step.config.durationMs }}
       />
     );
   }
-  if (stage === "error" || !run) return <ErrorPanel onBack={() => router.push("/entrainement")} />;
+  if (stage === "error" || !run) return <ErrorPanel onBack={() => (fixed ? fixed.onStop() : router.push("/entrainement"))} />;
 
   const paused = run.pausedAt !== null;
   const active = run.phase === "practice" || run.phase === "main";

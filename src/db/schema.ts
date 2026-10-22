@@ -122,6 +122,8 @@ export const exerciseRun = pgTable(
       .notNull()
       .references(() => trainingSession.id, { onDelete: "cascade" }),
     exercise: text("exercise").notNull(),
+    /** Part of the session the run belongs to (assessment: cold, bet, fatigued); null in free practice. */
+    block: text("block"),
     position: integer("position").notNull(),
     config: jsonb("config").notNull(),
     seed: bigint("seed", { mode: "number" }).notNull(),
@@ -174,4 +176,25 @@ export const difficultyState = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [primaryKey({ columns: [table.userId, table.exercise] })],
+);
+
+/** An assessment: a fixed protocol run as one session; results hold the score per domain. */
+export const assessment = pgTable(
+  "assessment",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id")
+      .notNull()
+      .unique()
+      .references(() => trainingSession.id, { onDelete: "cascade" }),
+    protocolVersion: integer("protocol_version").notNull(),
+    status: runStatus("status").notNull().default("in_progress"),
+    results: jsonb("results"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => [index("assessment_user_started_idx").on(table.userId, table.startedAt)],
 );

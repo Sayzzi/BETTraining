@@ -128,6 +128,16 @@ describe("n-back run", () => {
     expect(run.block).toMatchObject({ n: 1, soaMs: 2000 });
   });
 
+  it("keeps the level fixed when the configuration is not adaptive", () => {
+    let run = startNBack({ ...CONFIG, adaptive: false }, 2, 0, 1);
+    let at = 0;
+    while (run.blockNumber === 0) {
+      [run, at] = nextStimulus(run, at);
+      if (run.blockNumber === 0 && run.current?.scored) run = answerCorrectly(run, at + 300);
+    }
+    expect(run.level).toBe(1);
+  });
+
   it("flags practice trials, then waits for the user before the counted run", () => {
     let run = startNBack({ ...CONFIG, practiceScoredTrials: 3 }, 1, 0, 1);
     let at = 0;

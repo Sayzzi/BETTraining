@@ -62,6 +62,11 @@ describe("exercise catalogue", () => {
     expect(finalLevel(config, 4, run.trials)).toBeCloseTo(run.level);
   });
 
+  it("has no final level when the run was not adaptive", () => {
+    const config = { ...(exerciseConfig("stroop", 3) as Record<string, unknown>), adaptive: false };
+    expect(finalLevel(config as never, 5, [])).toBeNull();
+  });
+
   it("has no level for exercises without difficulty", () => {
     expect(finalLevel(exerciseConfig("pvt", 3), null, [])).toBeNull();
   });
