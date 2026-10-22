@@ -6,11 +6,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const t = await getTranslations();
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-5 md:px-6">
-      <header className="flex items-center justify-between gap-6 border-b border-trait py-5">
+      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-trait py-5">
         <Link href="/" className="type-wide text-lg font-bold">
           {t("brand")}
         </Link>
-        <nav className="flex items-center gap-6">
+        <nav className="flex items-center gap-5 whitespace-nowrap">
           <Link href="/entrainement" className="text-sm font-semibold underline-offset-4 hover:underline">
             {t("nav.freePractice")}
           </Link>
