@@ -2,7 +2,7 @@
 // holding the nine runs of the fixed protocol; each run uploads and completes
 // through the usual training endpoints.
 
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, lt } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "@/db/client";
 import { assessment, exerciseRun, trainingSession } from "@/db/schema";
@@ -11,8 +11,11 @@ import {
   assessmentSteps,
   computeAssessmentResults,
   type AssessmentBlock,
+  type AssessmentComparison,
   type AssessmentResults,
+  type AssessmentRunResult,
 } from "@/engine/assessment";
+import { compareAssessments, type Classification } from "@/engine/strengths";
 import { describeDifficulty, type CognitiveDomain, type ExerciseConfig, type ExerciseId } from "@/engine/exercises";
 import { randomSeed } from "@/engine/random";
 import type { RtResults } from "@/engine/results";
@@ -101,13 +104,11 @@ export async function completeAssessment(
   const pending = runs.filter((run) => run.status !== "completed").length;
   if (pending > 0) return { status: "runs_pending", pending };
 
-  const results = computeAssessmentResults(
-    runs.map((run) => ({
-      block: run.block as AssessmentBlock,
-      exercise: run.exercise as ExerciseId,
-      results: run.results as RtResults | null,
-    })),
-  );
+  const current = toRunResults(runs);
+  const results: AssessmentResults = {
+    ...computeAssessmentResults(current),
+    comparison: await compareWithPrevious(db, userId, found, current),
+  };
   await db
     .update(assessment)
     .set({ status: "completed", results, completedAt: new Date() })
@@ -164,8 +165,60 @@ export async function latestAssessments(db: Database, userId: string, limit = 2)
     .limit(limit);
 }
 
+/** Strengths and weaknesses from the latest assessment that could be compared; empty before that. */
+export async function currentClassification(
+  db: Database,
+  userId: string,
+): Promise<Partial<Record<CognitiveDomain, Classification>>> {
+  const [latest] = await latestAssessments(db, userId, 1);
+  return (latest?.results as AssessmentResults | null)?.comparison?.classification ?? {};
+}
+
 export async function hasCompletedAssessment(db: Database, userId: string) {
   return (await latestAssessments(db, userId, 1)).length > 0;
+}
+
+/** Compares with the user's previous completed assessment of the same protocol version, if any. */
+async function compareWithPrevious(
+  db: Database,
+  userId: string,
+  current: typeof assessment.$inferSelect,
+  currentRuns: AssessmentRunResult[],
+): Promise<AssessmentComparison | null> {
+  const [previous] = await db
+    .select()
+    .from(assessment)
+    .where(
+      and(
+        eq(assessment.userId, userId),
+        eq(assessment.status, "completed"),
+        eq(assessment.protocolVersion, current.protocolVersion),
+        lt(assessment.startedAt, current.startedAt),
+      ),
+    )
+    .orderBy(desc(assessment.completedAt))
+    .limit(1);
+  if (!previous) return null;
+
+  const previousRuns = await db
+    .select({ block: exerciseRun.block, exercise: exerciseRun.exercise, results: exerciseRun.results })
+    .from(exerciseRun)
+    .where(eq(exerciseRun.sessionId, previous.sessionId));
+  const domains = compareAssessments(toRunResults(previousRuns), currentRuns);
+  return {
+    previousAssessmentId: previous.id,
+    previousCompletedAt: previous.completedAt!.toISOString(),
+    domains,
+    classification: Object.fromEntries(domains.map((d) => [d.domain, d.classification])),
+  };
+}
+
+function toRunResults(rows: { block: string | null; exercise: string; results: unknown }[]): AssessmentRunResult[] {
+  return rows.map((row) => ({
+    block: row.block as AssessmentBlock,
+    exercise: row.exercise as ExerciseId,
+    results: row.results as RtResults | null,
+  }));
 }
 
 async function findOwnedAssessment(db: Database, userId: string, assessmentId: string) {

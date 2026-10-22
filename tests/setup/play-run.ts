@@ -13,17 +13,26 @@ import type { Trial } from "../../src/engine/trial";
 
 type Playable = { exercise: ExerciseId; config: ExerciseConfig; seed: number; level: number | null };
 
-/** Answers every stimulus after `rtMs`; `correct` decides whether the answer is right. */
-export function playRun(run: Playable, rtMs: number, correct: (index: number) => boolean = () => true): Trial[] {
+/**
+ * Answers every stimulus after `reaction` ms (a number, or a function of the answer's index for
+ * varied reaction times); `correct` decides whether each answer is right.
+ */
+export function playRun(
+  run: Playable,
+  reaction: number | ((index: number) => number),
+  correct: (index: number) => boolean = () => true,
+): Trial[] {
   let at = 0;
   let answered = 0;
+  let timed = 0;
+  const nextRt = () => (typeof reaction === "number" ? reaction : reaction(timed++));
 
   if (run.exercise === "pvt" || run.exercise === "pvt_b") {
     let state = pvt.startPvt(run.config as pvt.PvtConfig, run.seed, 0);
     while (state.phase !== "done") {
       at += 10;
       state = state.phase === "practice_done" ? pvt.beginMain(state, at) : pvt.frame(state, at);
-      if (state.stimulusOnsetMs !== null) state = pvt.respond(state, at + rtMs, { input: "keyboard" });
+      if (state.stimulusOnsetMs !== null) state = pvt.respond(state, at + nextRt(), { input: "keyboard" });
     }
     return state.trials;
   }
@@ -37,7 +46,7 @@ export function playRun(run: Playable, rtMs: number, correct: (index: number) =>
       if (current?.scored && !current.answer) {
         const right = current.isTarget ? "match" : "different";
         const choiceMade = correct(answered++) ? right : right === "match" ? "different" : "match";
-        state = nback.respond(state, at + rtMs, { choice: choiceMade, input: "keyboard" });
+        state = nback.respond(state, at + nextRt(), { choice: choiceMade, input: "keyboard" });
       }
     }
     return state.trials;
@@ -57,7 +66,7 @@ export function playRun(run: Playable, rtMs: number, correct: (index: number) =>
     state = state.phase === "practice_done" ? choice.beginMain(state, at) : choice.frame(state, at);
     if (state.current) {
       const right = spec.correctChoice(state.current.stimulus);
-      state = choice.respond(state, at + rtMs, correct(answered++) ? right : `not-${right}`, "keyboard");
+      state = choice.respond(state, at + nextRt(), correct(answered++) ? right : `not-${right}`, "keyboard");
     }
   }
   return state.trials;

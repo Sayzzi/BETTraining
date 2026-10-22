@@ -4,6 +4,7 @@ import { createDb } from "@/db/client";
 import { exerciseRun, trainingSession, user } from "@/db/schema";
 import {
   completeAssessment,
+  currentClassification,
   getAssessment,
   hasCompletedAssessment,
   startAssessment,
@@ -26,8 +27,13 @@ async function createUser() {
   return id;
 }
 
-async function completeStep(userId: string, step: AssessmentStepRun, rtMs: number) {
-  const trials = playRun(step, rtMs);
+async function completeStep(
+  userId: string,
+  step: AssessmentStepRun,
+  rtMs: number | ((index: number) => number),
+  correct?: (index: number) => boolean,
+) {
+  const trials = playRun(step, rtMs, correct);
   await recordTrials(db, userId, step.runId, { trials });
   return completeRun(db, userId, step.runId, { pauses: [], trialCount: trials.length });
 }
@@ -123,5 +129,44 @@ describe("assessments", () => {
     const started = await startAssessment(db, owner, DEVICE, QUICK);
     await expect(getAssessment(db, intruder, started.assessmentId)).rejects.toBeInstanceOf(NotFoundError);
     await expect(completeAssessment(db, intruder, started.assessmentId)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("has no comparison or ranking after a first assessment", async () => {
+    const userId = await createUser();
+    const started = await startAssessment(db, userId, DEVICE, 0.1);
+    for (const step of started.steps) await completeStep(userId, step, 300);
+    await completeAssessment(db, userId, started.assessmentId);
+
+    expect((await getAssessment(db, userId, started.assessmentId)).results!.comparison).toBeNull();
+    expect(await currentClassification(db, userId)).toEqual({});
+  });
+
+  it("compares a new assessment with the previous one and records the strengths", async () => {
+    const userId = await createUser();
+    // First: slower, irregular, one error in four on choice tasks.
+    const first = await startAssessment(db, userId, DEVICE, 0.1);
+    for (const step of first.steps) {
+      await completeStep(userId, step, (i) => (i % 2 ? 340 : 240), (i) => i % 4 !== 3);
+    }
+    await completeAssessment(db, userId, first.assessmentId);
+
+    // Second: faster, steadier and accurate on every test except the n-back, which stays the same.
+    const second = await startAssessment(db, userId, DEVICE, 0.1);
+    for (const step of second.steps) {
+      if (step.exercise === "nback") await completeStep(userId, step, (i) => (i % 2 ? 340 : 240), (i) => i % 4 !== 3);
+      else await completeStep(userId, step, (i) => (i % 2 ? 250 : 200));
+    }
+    await completeAssessment(db, userId, second.assessmentId);
+
+    const comparison = (await getAssessment(db, userId, second.assessmentId)).results!.comparison!;
+    expect(comparison.previousAssessmentId).toBe(first.assessmentId);
+    expect(comparison.classification).toEqual({
+      sustained_attention: "strength",
+      working_memory: "weakness",
+      inhibition: "strength",
+      processing_speed: "strength",
+    });
+    expect(comparison.domains.find((d) => d.domain === "inhibition")!.reactionTime.change).toBeGreaterThan(0.05);
+    expect(await currentClassification(db, userId)).toEqual(comparison.classification);
   });
 });

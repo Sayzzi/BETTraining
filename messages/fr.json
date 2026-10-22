@@ -270,7 +270,19 @@
       "fatigued": "Fatigué"
     },
     "detailTitle": "Détail des tests",
-    "home": "Retour à l'accueil"
+    "home": "Retour à l'accueil",
+    "comparisonTitle": "Points forts et points faibles",
+    "comparisonIntro": "Comparaison de tes tests à froid avec ceux de ton bilan du {date}. Un pourcentage positif est une amélioration.",
+    "reactionTime": "Temps de réaction",
+    "regularity": "Régularité",
+    "accuracy": "Précision",
+    "ranking": "Classement",
+    "strength": "Point fort",
+    "weakness": "Point faible",
+    "progressed": "progrès d'au moins 5 %",
+    "rankingRule": "Une capacité devient un point fort quand son temps de réaction, sa régularité et sa précision progressent chacun d'au moins 5 % (✓). Une précision qui reste à 97 % ou plus compte comme un progrès, puisqu'elle ne peut plus gagner 5 %. Les séances insistent sur les points faibles.",
+    "firstAssessment": "C'est ton premier bilan : le classement en points forts et points faibles apparaîtra à partir du prochain, en comparant tes résultats avec ceux-ci.",
+    "retake": "Refaire un bilan"
   },
   "session": {
     "title": "Séance BET",
