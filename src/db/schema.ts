@@ -1,4 +1,17 @@
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  boolean,
+  doublePrecision,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 // Better Auth tables: field names follow the library's expected model.
 
@@ -74,4 +87,71 @@ export const verification = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+// Training: a session holds exercise runs, a run holds its raw trials.
+// Raw trials are the source of truth; results can always be recomputed from them.
+
+export const sessionKind = pgEnum("session_kind", ["free_practice", "bet", "light", "assessment"]);
+export const runStatus = pgEnum("run_status", ["in_progress", "completed", "incomplete"]);
+export const trialOutcome = pgEnum("trial_outcome", ["hit", "lapse", "miss", "false_start"]);
+
+export const trainingSession = pgTable(
+  "training_session",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: sessionKind("kind").notNull(),
+    status: runStatus("status").notNull().default("in_progress"),
+    device: text("device").notNull(),
+    inputMode: text("input_mode").notNull(),
+    userAgent: text("user_agent"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+  },
+  (table) => [index("training_session_user_started_idx").on(table.userId, table.startedAt)],
+);
+
+export const exerciseRun = pgTable(
+  "exercise_run",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => trainingSession.id, { onDelete: "cascade" }),
+    exercise: text("exercise").notNull(),
+    position: integer("position").notNull(),
+    config: jsonb("config").notNull(),
+    seed: bigint("seed", { mode: "number" }).notNull(),
+    status: runStatus("status").notNull().default("in_progress"),
+    pauses: jsonb("pauses").notNull().default([]),
+    results: jsonb("results"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+  },
+  (table) => [index("exercise_run_session_idx").on(table.sessionId)],
+);
+
+export const trial = pgTable(
+  "trial",
+  {
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => exerciseRun.id, { onDelete: "cascade" }),
+    index: integer("index").notNull(),
+    practice: boolean("practice").notNull(),
+    onsetMs: doublePrecision("onset_ms"),
+    responseMs: doublePrecision("response_ms"),
+    rtMs: doublePrecision("rt_ms"),
+    outcome: trialOutcome("outcome").notNull(),
+    correct: boolean("correct").notNull(),
+    stimulus: jsonb("stimulus"),
+    response: jsonb("response"),
+    difficulty: jsonb("difficulty"),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  // The (run, index) key makes re-sent batches idempotent.
+  (table) => [primaryKey({ columns: [table.runId, table.index] })],
 );
