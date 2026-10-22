@@ -92,6 +92,28 @@ describe("computeRtResults", () => {
     expect(results.minutes[0].lapses).toBe(0);
   });
 
+  it("measures the interference cost as incongruent minus congruent hit reaction time", () => {
+    const withCongruency = (outcome: TrialOutcome, rt: number, congruent: boolean) => ({
+      ...trial(outcome, 0, rt),
+      stimulus: { congruent },
+    });
+    const results = computeRtResults(
+      [
+        withCongruency("hit", 500, true),
+        withCongruency("hit", 600, true),
+        withCongruency("hit", 650, false),
+        withCongruency("hit", 750, false),
+        withCongruency("error", 300, false),
+      ],
+      { lapseThresholdMs: null },
+    );
+    expect(results.congruencyEffectMs).toBe(150);
+  });
+
+  it("has no interference cost for tasks without congruency", () => {
+    expect(computeRtResults([trial("hit", 0, 300)], { lapseThresholdMs: 500 }).congruencyEffectMs).toBeNull();
+  });
+
   it("returns empty statistics for a run without counted trials", () => {
     expect(computeRtResults([], { lapseThresholdMs: 500 })).toEqual({
       trialCount: 0,
@@ -104,6 +126,7 @@ describe("computeRtResults", () => {
       misses: 0,
       falseStarts: 0,
       rateCorrectPerSecond: null,
+      congruencyEffectMs: null,
       lapseThresholdMs: 500,
       minutes: [],
     });

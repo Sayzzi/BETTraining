@@ -26,6 +26,8 @@ export type RtResults = {
   falseStarts: number;
   /** Correct responses per second of total reaction time (Woltz & Was rate correct score). */
   rateCorrectPerSecond: number | null;
+  /** Conflict tasks only: mean hit RT on incongruent minus congruent stimuli (the interference cost). */
+  congruencyEffectMs: number | null;
   lapseThresholdMs: number | null;
   minutes: MinuteResult[];
 };
@@ -76,9 +78,23 @@ export function computeRtResults(trials: Trial[], options: { lapseThresholdMs: n
     misses,
     falseStarts,
     rateCorrectPerSecond: rtTotalMs > 0 ? correctCount / (rtTotalMs / 1000) : null,
+    congruencyEffectMs: congruencyEffect(counted),
     lapseThresholdMs: options.lapseThresholdMs,
     minutes: byMinute(counted, missesAreLapses),
   };
+}
+
+function congruencyEffect(trials: Trial[]): number | null {
+  const congruent: number[] = [];
+  const incongruent: number[] = [];
+  for (const trial of trials) {
+    const flag = trial.stimulus?.congruent;
+    if (trial.outcome !== "hit" || typeof flag !== "boolean") continue;
+    (flag ? congruent : incongruent).push(trial.rtMs!);
+  }
+  const congruentMean = mean(congruent);
+  const incongruentMean = mean(incongruent);
+  return congruentMean === null || incongruentMean === null ? null : incongruentMean - congruentMean;
 }
 
 function byMinute(trials: Trial[], missesAreLapses: boolean): MinuteResult[] {

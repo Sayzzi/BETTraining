@@ -2,7 +2,9 @@ import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { createDb } from "@/db/client";
 import { difficultyState, exerciseRun, trainingSession, user } from "@/db/schema";
+import * as choice from "@/engine/choice-task";
 import * as nback from "@/engine/nback";
+import { STROOP_SPEC } from "@/engine/stroop";
 import { frame, respond, startPvt, type PvtConfig } from "@/engine/pvt";
 import type { Trial } from "@/engine/trial";
 import {
@@ -27,7 +29,7 @@ async function createUser() {
   return id;
 }
 
-function start(userId: string, exercise: "pvt" | "nback" = "pvt") {
+function start(userId: string, exercise: "pvt" | "nback" | "stroop" | "flanker" = "pvt") {
   return startFreePractice(db, userId, {
     exercise,
     durationMin: 3,
@@ -237,5 +239,34 @@ describe("adaptive difficulty", () => {
     expect(started.level).toBeNull();
     const [run] = await db.select().from(exerciseRun).where(eq(exerciseRun.id, started.runId));
     expect(run.difficultyStart).toBeNull();
+  });
+});
+
+describe("choice tasks", () => {
+  it("runs a Stroop session end to end: initial level, replayed level saved, interference cost stored", async () => {
+    const userId = await createUser();
+    const started = await start(userId, "stroop");
+    expect(started.level).toBe(3);
+
+    const config = { ...(started.config as choice.ChoiceTaskConfig), practiceTrials: 0 };
+    let run = choice.startChoiceTask(config, STROOP_SPEC, started.seed, 0, started.level!);
+    let at = 0;
+    while (run.phase !== "done") {
+      at += 10;
+      run = choice.frame(run, at);
+      if (run.current) {
+        const rt = run.current.stimulus.congruent ? 500 : 650;
+        run = choice.respond(run, at + rt, STROOP_SPEC.correctChoice(run.current.stimulus), "keyboard");
+      }
+    }
+    await recordTrials(db, userId, started.runId, { trials: run.trials });
+    const outcome = await completeRun(db, userId, started.runId, { pauses: [], trialCount: run.trials.length });
+
+    expect(outcome.status).toBe("completed");
+    const details = await getRun(db, userId, started.runId);
+    expect(details.results!.congruencyEffectMs).toBe(150);
+    expect(details.difficultyStart).toMatchObject({ level: 3, incongruentRate: expect.any(Number) });
+    expect(details.difficultyEnd!.level).toBeCloseTo(run.level);
+    expect((await start(userId, "stroop")).level).toBeCloseTo(run.level);
   });
 });

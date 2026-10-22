@@ -1,15 +1,18 @@
 // Catalogue of exercises: what each one trains, whether it can serve in the
 // BET block, and how its difficulty moves. Grows with each exercise ticket.
 
+import type { ChoiceTaskConfig } from "./choice-task";
 import { replayLevel, staircaseFor } from "./difficulty";
+import { FLANKER_LEVELS, FLANKER_SPEC, flankerConfig } from "./flanker";
 import { NBACK_LEVELS, nBackConfig, nBackParameters, type NBackConfig } from "./nback";
 import { PVT_B, pvtStandard, type PvtConfig } from "./pvt";
 import { computeRtResults, type RtResults } from "./results";
+import { STROOP_LEVELS, STROOP_SPEC, stroopConfig } from "./stroop";
 import type { Trial } from "./trial";
 
 export type CognitiveDomain = "sustained_attention" | "working_memory" | "processing_speed" | "inhibition";
 
-export type ExerciseId = "pvt" | "pvt_b" | "nback";
+export type ExerciseId = "pvt" | "pvt_b" | "nback" | "stroop" | "flanker";
 
 export type ExerciseDefinition = {
   id: ExerciseId;
@@ -30,9 +33,21 @@ export const EXERCISES: Record<ExerciseId, ExerciseDefinition> = {
     betEligible: true,
     difficulty: { ...NBACK_LEVELS, levers: ["n", "pace"] },
   },
+  stroop: {
+    id: "stroop",
+    domains: ["inhibition"],
+    betEligible: true,
+    difficulty: { ...STROOP_LEVELS, levers: ["incongruentRate", "responseWindow", "interTrialInterval"] },
+  },
+  flanker: {
+    id: "flanker",
+    domains: ["inhibition", "sustained_attention"],
+    betEligible: true,
+    difficulty: { ...FLANKER_LEVELS, levers: ["incongruentRate", "responseWindow", "interTrialInterval"] },
+  },
 };
 
-export const FREE_PRACTICE_EXERCISES = ["pvt", "nback"] as const satisfies readonly ExerciseId[];
+export const FREE_PRACTICE_EXERCISES = ["pvt", "nback", "stroop", "flanker"] as const satisfies readonly ExerciseId[];
 export type FreePracticeExercise = (typeof FREE_PRACTICE_EXERCISES)[number];
 
 export const FREE_PRACTICE_DURATIONS_MIN = [3, 5, 10] as const;
@@ -40,7 +55,7 @@ export const FREE_PRACTICE_DURATIONS_MIN = [3, 5, 10] as const;
 /** Success rate targeted by adaptive difficulty outside the BET block. */
 export const FREE_PRACTICE_TARGET = 0.8;
 
-export type ExerciseConfig = PvtConfig | NBackConfig;
+export type ExerciseConfig = PvtConfig | NBackConfig | ChoiceTaskConfig;
 
 export function exerciseConfig(exercise: ExerciseId, durationMin: number): ExerciseConfig {
   switch (exercise) {
@@ -50,6 +65,10 @@ export function exerciseConfig(exercise: ExerciseId, durationMin: number): Exerc
       return pvtStandard(durationMin * 60_000);
     case "nback":
       return nBackConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
+    case "stroop":
+      return stroopConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
+    case "flanker":
+      return flankerConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
   }
 }
 
@@ -72,5 +91,14 @@ export type DifficultySnapshot = { level: number } & Record<string, number>;
 
 /** Level plus the parameters it sets, as stored with a run. */
 export function describeDifficulty(exercise: ExerciseId, level: number): DifficultySnapshot {
-  return exercise === "nback" ? { level, ...nBackParameters(level) } : { level };
+  switch (exercise) {
+    case "nback":
+      return { level, ...nBackParameters(level) };
+    case "stroop":
+      return { level, ...STROOP_SPEC.parameters(level) };
+    case "flanker":
+      return { level, ...FLANKER_SPEC.parameters(level) };
+    default:
+      return { level };
+  }
 }

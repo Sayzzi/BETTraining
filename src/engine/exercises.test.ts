@@ -20,6 +20,15 @@ describe("exercise catalogue", () => {
     });
   });
 
+  it("declares Stroop and flanker as adaptive inhibition exercises usable in the BET block, with speed levers", () => {
+    for (const id of ["stroop", "flanker"] as const) {
+      expect(EXERCISES[id].domains).toContain("inhibition");
+      expect(EXERCISES[id].betEligible).toBe(true);
+      expect(EXERCISES[id].difficulty!.levers).toEqual(["incongruentRate", "responseWindow", "interTrialInterval"]);
+    }
+    expect(EXERCISES.flanker.domains).toContain("sustained_attention");
+  });
+
   it("keeps the PVT-B fatigue check out of the BET block", () => {
     expect(EXERCISES.pvt_b.betEligible).toBe(false);
   });

@@ -52,9 +52,13 @@
     "intro": "Choisis un exercice et sa durée. Ces séances sont enregistrées dans ton historique, sans remplacer la séance du jour.",
     "pvtName": "Vigilance (PVT)",
     "pvtDescription": "Attention soutenue : réagir le plus vite possible à un signal imprévisible.",
-    "moreSoon": "D'autres exercices arrivent : Stroop, flanker, temps de réaction à choix et symboles-chiffres.",
+    "moreSoon": "D'autres exercices arrivent : temps de réaction à choix et symboles-chiffres.",
     "nbackName": "N-back",
-    "nbackDescription": "Mémoire de travail : comparer chaque lettre à celle d'il y a N positions. La difficulté s'adapte à ton niveau."
+    "nbackDescription": "Mémoire de travail : comparer chaque lettre à celle d'il y a N positions. La difficulté s'adapte à ton niveau.",
+    "stroopName": "Stroop",
+    "stroopDescription": "Inhibition : nommer la couleur de l'encre sans se laisser piéger par le mot écrit.",
+    "flankerName": "Flanker",
+    "flankerDescription": "Inhibition et attention : suivre la flèche du milieu en ignorant celles qui l'entourent."
   },
   "pvt": {
     "title": "Vigilance (PVT)",
@@ -82,7 +86,9 @@
     "backToList": "Revenir aux exercices",
     "titles": {
       "pvt": "Résultats du PVT",
-      "nback": "Résultats du n-back"
+      "nback": "Résultats du n-back",
+      "stroop": "Résultats du Stroop",
+      "flanker": "Résultats du flanker"
     },
     "errors": "Erreurs",
     "misses": "Sans réponse",
@@ -91,7 +97,9 @@
     "difficultyChange": "Début : {start}. Fin : {end}.",
     "difficultyNext": "Ta prochaine séance reprendra au niveau de fin.",
     "meanRtChoice": "Temps de réaction moyen des bonnes réponses.",
-    "minuteIntroChoice": "Ton temps de réaction moyen à chaque minute. Une barre qui s'allonge montre le moment où ta concentration baisse."
+    "minuteIntroChoice": "Ton temps de réaction moyen à chaque minute. Une barre qui s'allonge montre le moment où ta concentration baisse.",
+    "congruencyEffect": "Effet d'interférence : {value} ms. C'est l'écart entre ton temps de réaction sur les essais en conflit et sur les autres : plus il est faible, mieux tu résistes à la distraction.",
+    "difficultyChoice": "niveau {level} ({incongruent} d'essais en conflit, {seconds} s pour répondre)"
   },
   "player": {
     "durationLabel": "Durée de l'exercice",
@@ -129,5 +137,40 @@
     "match": "Identique",
     "differentKey": "F ou ←",
     "matchKey": "J ou →"
+  },
+  "choiceTask": {
+    "feedbackRight": "Juste",
+    "feedbackWrong": "Faux",
+    "feedbackSlow": "Trop lent"
+  },
+  "stroop": {
+    "title": "Stroop",
+    "domain": "Inhibition",
+    "instructions": "Un nom de couleur s'affiche, écrit dans une encre d'une autre couleur ou de la même. Réponds à la couleur de l'encre, pas au mot écrit.",
+    "keys": "Au clavier : D pour rouge, F pour vert, J pour bleu, K pour jaune. Sur mobile, touche les boutons en bas de l'écran.",
+    "adaptive": "La difficulté s'ajuste à tes réponses : plus de mots en conflit avec leur encre et moins de temps pour répondre quand tu réussis. L'exercice reprendra à ton niveau la prochaine fois.",
+    "colors": {
+      "red": "Rouge",
+      "green": "Vert",
+      "blue": "Bleu",
+      "yellow": "Jaune"
+    },
+    "words": {
+      "red": "ROUGE",
+      "green": "VERT",
+      "blue": "BLEU",
+      "yellow": "JAUNE"
+    }
+  },
+  "flanker": {
+    "title": "Flanker",
+    "domain": "Inhibition et attention",
+    "instructions": "Cinq flèches s'affichent. Réponds à la direction de la flèche du milieu, en ignorant celles qui l'entourent, même quand elles pointent dans l'autre sens.",
+    "keys": "Au clavier : F ou ← pour gauche, J ou → pour droite. Sur mobile, touche les boutons en bas de l'écran.",
+    "adaptive": "La difficulté s'ajuste à tes réponses : plus de flèches en conflit et moins de temps pour répondre quand tu réussis. L'exercice reprendra à ton niveau la prochaine fois.",
+    "left": "Gauche",
+    "right": "Droite",
+    "leftKey": "F ou ←",
+    "rightKey": "J ou →"
   }
 }

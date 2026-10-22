@@ -45,12 +45,21 @@ export async function RunResults({ run }: { run: RunDetails }) {
   }
 
   const hasLapses = results.lapseThresholdMs !== null;
-  const describe = (snapshot: DifficultySnapshot) =>
-    t("difficultyNBack", {
-      level: format.number(snapshot.level, { maximumFractionDigits: 2 }),
-      n: snapshot.n,
-      seconds: format.number(snapshot.soaMs / 1000, { maximumFractionDigits: 1 }),
+  const describe = (snapshot: DifficultySnapshot) => {
+    const level = format.number(snapshot.level, { maximumFractionDigits: 2 });
+    if ("n" in snapshot) {
+      return t("difficultyNBack", {
+        level,
+        n: snapshot.n,
+        seconds: format.number(snapshot.soaMs / 1000, { maximumFractionDigits: 1 }),
+      });
+    }
+    return t("difficultyChoice", {
+      level,
+      incongruent: format.number(snapshot.incongruentRate, { style: "percent", maximumFractionDigits: 0 }),
+      seconds: format.number(snapshot.responseWindowMs / 1000, { maximumFractionDigits: 1 }),
     });
+  };
 
   const percent = (value: number | null) =>
     value === null ? "—" : format.number(value, { style: "percent", maximumFractionDigits: 0 });
@@ -84,6 +93,13 @@ export async function RunResults({ run }: { run: RunDetails }) {
           <span className="text-2xl md:text-3xl">ms</span>
         </p>
         <p className="mt-4 text-trait">{t(hasLapses ? "meanRt" : "meanRtChoice")}</p>
+        {results.congruencyEffectMs !== null ? (
+          <p className="mt-3 max-w-[60ch] text-brume">
+            {t("congruencyEffect", {
+              value: format.number(Math.round(results.congruencyEffectMs), { signDisplay: "exceptZero" }),
+            })}
+          </p>
+        ) : null}
       </div>
 
       {run.difficultyStart && run.difficultyEnd ? (
