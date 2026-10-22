@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { createDb } from "@/db/client";
-import { exerciseRun, trainingSession, user } from "@/db/schema";
-import { frame, respond, startPvt } from "@/engine/pvt";
+import { difficultyState, exerciseRun, trainingSession, user } from "@/db/schema";
+import * as nback from "@/engine/nback";
+import { frame, respond, startPvt, type PvtConfig } from "@/engine/pvt";
 import type { Trial } from "@/engine/trial";
 import {
   abandonSession,
@@ -26,9 +27,9 @@ async function createUser() {
   return id;
 }
 
-function start(userId: string) {
+function start(userId: string, exercise: "pvt" | "nback" = "pvt") {
   return startFreePractice(db, userId, {
-    exercise: "pvt",
+    exercise,
     durationMin: 3,
     device: "desktop",
     inputMode: "keyboard",
@@ -37,7 +38,8 @@ function start(userId: string) {
 }
 
 /** Plays a whole run with the engine, answering every stimulus after 280 ms. */
-function playRun(seed: number, config: Parameters<typeof startPvt>[0]): Trial[] {
+function playRun(seed: number, startedConfig: unknown): Trial[] {
+  const config = startedConfig as PvtConfig;
   let run = startPvt({ ...config, practiceTrials: 0 }, seed, 0);
   let at = 0;
   while (run.phase !== "done") {
@@ -147,5 +149,93 @@ describe("free practice sessions", () => {
     await expect(
       recordTrials(db, userId, started.runId, { trials: [{ index: -1, outcome: "great" }] }),
     ).rejects.toThrow();
+  });
+});
+
+/** Plays a whole n-back run at about 90 % success (above the 80 % target, so the level rises). */
+function playNBack(started: Awaited<ReturnType<typeof start>>) {
+  const config = { ...(started.config as nback.NBackConfig), practiceScoredTrials: 0 };
+  let run = nback.startNBack(config, started.seed, 0, started.level!);
+  let at = 0;
+  while (run.phase !== "done") {
+    at += 10;
+    run = nback.frame(run, at);
+    const current = run.current;
+    if (current?.scored && !current.answer) {
+      const right = current.isTarget ? "match" : "different";
+      const choice = current.position % 10 === 0 ? (right === "match" ? "different" : "match") : right;
+      run = nback.respond(run, at + 500, { choice, input: "keyboard" });
+    }
+  }
+  return run;
+}
+
+describe("adaptive difficulty", () => {
+  it("starts a new user's n-back at the initial level and records it on the run", async () => {
+    const userId = await createUser();
+    const started = await start(userId, "nback");
+
+    expect(started.level).toBe(2);
+    const [run] = await db.select().from(exerciseRun).where(eq(exerciseRun.id, started.runId));
+    expect(run.difficultyStart).toEqual({ level: 2, n: 1, soaMs: 2500 });
+  });
+
+  it("saves the level reached, replayed on the server, and resumes from it next time", async () => {
+    const userId = await createUser();
+    const first = await start(userId, "nback");
+    const played = playNBack(first);
+    await recordTrials(db, userId, first.runId, { trials: played.trials });
+
+    await completeRun(db, userId, first.runId, { pauses: [], trialCount: played.trials.length });
+
+    const run = await getRun(db, userId, first.runId);
+    expect(run.difficultyEnd!.level).toBeCloseTo(played.level);
+    expect(run.difficultyEnd!.level).toBeGreaterThan(2);
+    const [saved] = await db.select().from(difficultyState).where(eq(difficultyState.userId, userId));
+    expect(saved).toMatchObject({ exercise: "nback" });
+    expect(saved.level).toBeCloseTo(played.level);
+
+    const second = await start(userId, "nback");
+    expect(second.level).toBeCloseTo(played.level);
+  });
+
+  it("stores the difficulty in force with each trial", async () => {
+    const userId = await createUser();
+    const started = await start(userId, "nback");
+    const played = playNBack(started);
+    await recordTrials(db, userId, started.runId, { trials: played.trials.slice(0, 3) });
+
+    const [first] = await loadTrials(db, started.runId);
+    expect(first.difficulty).toEqual({ level: 2, n: 1, soaMs: 2500 });
+    expect(first.response).toMatchObject({ choice: expect.stringMatching(/match|different/) });
+  });
+
+  it("leaves the saved level untouched when a run is abandoned", async () => {
+    const userId = await createUser();
+    const started = await start(userId, "nback");
+    const played = playNBack(started);
+    await recordTrials(db, userId, started.runId, { trials: played.trials });
+    await abandonSession(db, userId, started.sessionId);
+
+    expect(await db.select().from(difficultyState).where(eq(difficultyState.userId, userId))).toHaveLength(0);
+  });
+
+  it("keeps each user's level separate", async () => {
+    const alice = await createUser();
+    const bob = await createUser();
+    const started = await start(alice, "nback");
+    const played = playNBack(started);
+    await recordTrials(db, alice, started.runId, { trials: played.trials });
+    await completeRun(db, alice, started.runId, { pauses: [], trialCount: played.trials.length });
+
+    expect((await start(bob, "nback")).level).toBe(2);
+  });
+
+  it("has no difficulty for the PVT", async () => {
+    const userId = await createUser();
+    const started = await start(userId);
+    expect(started.level).toBeNull();
+    const [run] = await db.select().from(exerciseRun).where(eq(exerciseRun.id, started.runId));
+    expect(run.difficultyStart).toBeNull();
   });
 });

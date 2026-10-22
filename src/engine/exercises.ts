@@ -1,20 +1,76 @@
-// Catalogue of exercises the player can run. Grows with each exercise ticket.
+// Catalogue of exercises: what each one trains, whether it can serve in the
+// BET block, and how its difficulty moves. Grows with each exercise ticket.
 
+import { replayLevel, staircaseFor } from "./difficulty";
+import { NBACK_LEVELS, nBackConfig, nBackParameters, type NBackConfig } from "./nback";
 import { PVT_B, pvtStandard, type PvtConfig } from "./pvt";
 import { computeRtResults, type RtResults } from "./results";
 import type { Trial } from "./trial";
 
-export type ExerciseId = "pvt" | "pvt_b";
+export type CognitiveDomain = "sustained_attention" | "working_memory" | "processing_speed" | "inhibition";
 
-export const FREE_PRACTICE_EXERCISES = ["pvt"] as const satisfies readonly ExerciseId[];
+export type ExerciseId = "pvt" | "pvt_b" | "nback";
+
+export type ExerciseDefinition = {
+  id: ExerciseId;
+  domains: CognitiveDomain[];
+  /** Long, demanding versions can fill the BET block. */
+  betEligible: boolean;
+  /** Level bounds and the parameters a level changes, or null when the exercise has no difficulty. */
+  difficulty: { min: number; max: number; initial: number; levers: string[] } | null;
+};
+
+export const EXERCISES: Record<ExerciseId, ExerciseDefinition> = {
+  pvt: { id: "pvt", domains: ["sustained_attention"], betEligible: true, difficulty: null },
+  // The 3-minute fatigue check that opens and closes each BET session.
+  pvt_b: { id: "pvt_b", domains: ["sustained_attention"], betEligible: false, difficulty: null },
+  nback: {
+    id: "nback",
+    domains: ["working_memory"],
+    betEligible: true,
+    difficulty: { ...NBACK_LEVELS, levers: ["n", "pace"] },
+  },
+};
+
+export const FREE_PRACTICE_EXERCISES = ["pvt", "nback"] as const satisfies readonly ExerciseId[];
 export type FreePracticeExercise = (typeof FREE_PRACTICE_EXERCISES)[number];
 
 export const FREE_PRACTICE_DURATIONS_MIN = [3, 5, 10] as const;
 
-export function exerciseConfig(exercise: ExerciseId, durationMin: number): PvtConfig {
-  return exercise === "pvt_b" ? PVT_B : pvtStandard(durationMin * 60_000);
+/** Success rate targeted by adaptive difficulty outside the BET block. */
+export const FREE_PRACTICE_TARGET = 0.8;
+
+export type ExerciseConfig = PvtConfig | NBackConfig;
+
+export function exerciseConfig(exercise: ExerciseId, durationMin: number): ExerciseConfig {
+  switch (exercise) {
+    case "pvt_b":
+      return PVT_B;
+    case "pvt":
+      return pvtStandard(durationMin * 60_000);
+    case "nback":
+      return nBackConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
+  }
 }
 
-export function computeExerciseResults(config: PvtConfig, trials: Trial[]): RtResults {
-  return computeRtResults(trials, { lapseThresholdMs: config.lapseThresholdMs });
+export function computeExerciseResults(config: ExerciseConfig, trials: Trial[]): RtResults {
+  return computeRtResults(trials, { lapseThresholdMs: "lapseThresholdMs" in config ? config.lapseThresholdMs : null });
+}
+
+/** Level reached at the end of a run, replayed from its counted trials. Null without difficulty. */
+export function finalLevel(config: ExerciseConfig, startLevel: number | null, trials: Trial[]): number | null {
+  if (startLevel === null || !("target" in config)) return null;
+  const staircase = staircaseFor(config.target, { min: config.minLevel, max: config.maxLevel });
+  return replayLevel(
+    startLevel,
+    trials.filter((t) => !t.practice).map((t) => t.correct),
+    staircase,
+  );
+}
+
+export type DifficultySnapshot = { level: number } & Record<string, number>;
+
+/** Level plus the parameters it sets, as stored with a run. */
+export function describeDifficulty(exercise: ExerciseId, level: number): DifficultySnapshot {
+  return exercise === "nback" ? { level, ...nBackParameters(level) } : { level };
 }

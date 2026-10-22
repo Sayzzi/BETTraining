@@ -27,6 +27,7 @@ function trial(index: number): Trial {
     correct: true,
     stimulus: { isiMs: 3000 },
     response: { input: "keyboard" },
+    difficulty: null,
   };
 }
 

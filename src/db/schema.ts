@@ -94,7 +94,7 @@ export const verification = pgTable(
 
 export const sessionKind = pgEnum("session_kind", ["free_practice", "bet", "light", "assessment"]);
 export const runStatus = pgEnum("run_status", ["in_progress", "completed", "incomplete"]);
-export const trialOutcome = pgEnum("trial_outcome", ["hit", "lapse", "miss", "false_start"]);
+export const trialOutcome = pgEnum("trial_outcome", ["hit", "error", "lapse", "miss", "false_start"]);
 
 export const trainingSession = pgTable(
   "training_session",
@@ -128,6 +128,9 @@ export const exerciseRun = pgTable(
     status: runStatus("status").notNull().default("in_progress"),
     pauses: jsonb("pauses").notNull().default([]),
     results: jsonb("results"),
+    /** Level and parameters at the start and end of the run; null for exercises without difficulty. */
+    difficultyStart: jsonb("difficulty_start"),
+    difficultyEnd: jsonb("difficulty_end"),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
   },
@@ -154,4 +157,21 @@ export const trial = pgTable(
   },
   // The (run, index) key makes re-sent batches idempotent.
   (table) => [primaryKey({ columns: [table.runId, table.index] })],
+);
+
+/** Current difficulty level per user and exercise; each run starts where the last one ended. */
+export const difficultyState = pgTable(
+  "difficulty_state",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    exercise: text("exercise").notNull(),
+    level: doublePrecision("level").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.exercise] })],
 );

@@ -4,14 +4,19 @@
 import { and, asc, count, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "@/db/client";
-import { exerciseRun, trainingSession, trial } from "@/db/schema";
+import { difficultyState, exerciseRun, trainingSession, trial } from "@/db/schema";
 import {
   computeExerciseResults,
+  describeDifficulty,
+  EXERCISES,
   exerciseConfig,
+  finalLevel,
   FREE_PRACTICE_DURATIONS_MIN,
   FREE_PRACTICE_EXERCISES,
+  type DifficultySnapshot,
+  type ExerciseConfig,
+  type ExerciseId,
 } from "@/engine/exercises";
-import type { PvtConfig } from "@/engine/pvt";
 import { randomSeed } from "@/engine/random";
 import type { RtResults } from "@/engine/results";
 import type { Pause, Trial } from "@/engine/trial";
@@ -34,10 +39,11 @@ export const trialInput = z.object({
   onsetMs: z.number().nullable(),
   responseMs: z.number().nullable(),
   rtMs: z.number().nullable(),
-  outcome: z.enum(["hit", "lapse", "miss", "false_start"]),
+  outcome: z.enum(["hit", "error", "lapse", "miss", "false_start"]),
   correct: z.boolean(),
   stimulus: z.record(z.string(), z.unknown()).nullable(),
-  response: z.object({ input: inputMode }).nullable(),
+  response: z.object({ input: inputMode, choice: z.string().max(32).optional() }).nullable(),
+  difficulty: z.record(z.string(), z.number()).nullable(),
 });
 
 export const trialBatchInput = z.object({ trials: z.array(trialInput).max(500) });
@@ -47,7 +53,15 @@ export const completeRunInput = z.object({
   trialCount: z.number().int().nonnegative(),
 });
 
-export type StartedRun = { sessionId: string; runId: string; seed: number; config: PvtConfig };
+export type StartedRun = {
+  sessionId: string;
+  runId: string;
+  exercise: ExerciseId;
+  seed: number;
+  config: ExerciseConfig;
+  /** Starting difficulty level, or null for exercises without difficulty. */
+  level: number | null;
+};
 
 export async function startFreePractice(
   db: Database,
@@ -60,15 +74,23 @@ export async function startFreePractice(
 
   return db.transaction(async (tx) => {
     await abandonOpenSessions(tx, userId);
+    const level = await currentLevel(tx, userId, exercise);
     const [session] = await tx
       .insert(trainingSession)
       .values({ userId, kind: "free_practice", device, inputMode, userAgent })
       .returning({ id: trainingSession.id });
     const [run] = await tx
       .insert(exerciseRun)
-      .values({ sessionId: session.id, exercise, position: 0, config, seed })
+      .values({
+        sessionId: session.id,
+        exercise,
+        position: 0,
+        config,
+        seed,
+        difficultyStart: level === null ? null : describeDifficulty(exercise, level),
+      })
       .returning({ id: exerciseRun.id });
-    return { sessionId: session.id, runId: run.id, seed, config };
+    return { sessionId: session.id, runId: run.id, exercise, seed, config, level };
   });
 }
 
@@ -100,13 +122,28 @@ export async function completeRun(
   const [{ stored }] = await db.select({ stored: count() }).from(trial).where(eq(trial.runId, runId));
   if (stored < trialCount) return { status: "missing_trials", stored, expected: trialCount };
 
-  const results = computeExerciseResults(run.config as PvtConfig, await loadTrials(db, runId));
+  const config = run.config as ExerciseConfig;
+  const trials = await loadTrials(db, runId);
+  const results = computeExerciseResults(config, trials);
+  const start = run.difficultyStart as DifficultySnapshot | null;
+  const endLevel = finalLevel(config, start?.level ?? null, trials);
+  const exercise = run.exercise as ExerciseId;
+  const difficultyEnd = endLevel === null ? null : describeDifficulty(exercise, endLevel);
   const endedAt = new Date();
   await db.transaction(async (tx) => {
     await tx
       .update(exerciseRun)
-      .set({ status: "completed", results, pauses, endedAt })
+      .set({ status: "completed", results, pauses, difficultyEnd, endedAt })
       .where(eq(exerciseRun.id, runId));
+    if (endLevel !== null) {
+      await tx
+        .insert(difficultyState)
+        .values({ userId, exercise, level: endLevel })
+        .onConflictDoUpdate({
+          target: [difficultyState.userId, difficultyState.exercise],
+          set: { level: endLevel, updatedAt: endedAt },
+        });
+    }
     await tx
       .update(trainingSession)
       .set({ status: "completed", endedAt })
@@ -140,8 +177,10 @@ export type RunDetails = {
   sessionId: string;
   exercise: string;
   status: "in_progress" | "completed" | "incomplete";
-  config: PvtConfig;
+  config: ExerciseConfig;
   results: RtResults | null;
+  difficultyStart: DifficultySnapshot | null;
+  difficultyEnd: DifficultySnapshot | null;
   startedAt: Date;
 };
 
@@ -152,8 +191,10 @@ export async function getRun(db: Database, userId: string, runId: string): Promi
     sessionId: run.sessionId,
     exercise: run.exercise,
     status: run.status,
-    config: run.config as PvtConfig,
+    config: run.config as ExerciseConfig,
     results: run.results as RtResults | null,
+    difficultyStart: run.difficultyStart as DifficultySnapshot | null,
+    difficultyEnd: run.difficultyEnd as DifficultySnapshot | null,
     startedAt: run.startedAt,
   };
 }
@@ -170,6 +211,7 @@ export async function loadTrials(db: Database, runId: string): Promise<Trial[]> 
     correct: row.correct,
     stimulus: row.stimulus as Trial["stimulus"],
     response: row.response as Trial["response"],
+    difficulty: row.difficulty as Trial["difficulty"],
   }));
 }
 
@@ -186,6 +228,17 @@ async function findOwnedRun(db: Database | Transaction, userId: string, runId: s
     .where(and(eq(exerciseRun.id, runId), eq(trainingSession.userId, userId)));
   if (!row) throw new NotFoundError("Run not found");
   return row.run;
+}
+
+/** The user's saved level for an exercise, its initial level, or null without difficulty. */
+export async function currentLevel(db: Database | Transaction, userId: string, exercise: ExerciseId) {
+  const difficulty = EXERCISES[exercise].difficulty;
+  if (!difficulty) return null;
+  const [saved] = await db
+    .select({ level: difficultyState.level })
+    .from(difficultyState)
+    .where(and(eq(difficultyState.userId, userId), eq(difficultyState.exercise, exercise)));
+  return saved?.level ?? difficulty.initial;
 }
 
 async function abandonOpenSessions(tx: Transaction, userId: string) {

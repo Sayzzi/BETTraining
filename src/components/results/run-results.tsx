@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
+import type { DifficultySnapshot } from "@/engine/exercises";
 import type { MinuteResult } from "@/engine/results";
 import type { RunDetails } from "@/server/training";
 
@@ -7,7 +9,9 @@ export async function RunResults({ run }: { run: RunDetails }) {
   const results = run.results;
   const heading = (
     <header>
-      <h1 className="type-wide text-4xl font-extrabold">{t("title")}</h1>
+      <h1 className="type-wide text-4xl font-extrabold">
+        {t.has(`titles.${run.exercise}`) ? t(`titles.${run.exercise}`) : t("titles.pvt")}
+      </h1>
       <p className="mt-2 text-schiste">
         {format.dateTime(run.startedAt, { dateStyle: "long", timeStyle: "short" })}
         {", "}
@@ -16,21 +20,46 @@ export async function RunResults({ run }: { run: RunDetails }) {
     </header>
   );
 
+  const actions = (
+    <div className="mt-12 flex flex-wrap gap-6">
+      <Link
+        href={`/entrainement/${run.exercise}`}
+        className="h-12 rounded-md bg-ardoise px-6 leading-12 font-semibold text-brume"
+      >
+        {t("again")}
+      </Link>
+      <Link href="/entrainement" className="leading-12 font-semibold underline underline-offset-4">
+        {t("backToList")}
+      </Link>
+    </div>
+  );
+
   if (!results) {
     return (
       <>
         {heading}
         <p className="mt-8 max-w-[60ch] text-lg">{t(run.status === "incomplete" ? "incomplete" : "pending")}</p>
+        {actions}
       </>
     );
   }
+
+  const hasLapses = results.lapseThresholdMs !== null;
+  const describe = (snapshot: DifficultySnapshot) =>
+    t("difficultyNBack", {
+      level: format.number(snapshot.level, { maximumFractionDigits: 2 }),
+      n: snapshot.n,
+      seconds: format.number(snapshot.soaMs / 1000, { maximumFractionDigits: 1 }),
+    });
 
   const percent = (value: number | null) =>
     value === null ? "—" : format.number(value, { style: "percent", maximumFractionDigits: 0 });
   const ms = (value: number | null) => (value === null ? "—" : format.number(Math.round(value)));
 
   const stats = [
-    { label: t("lapses", { threshold: results.lapseThresholdMs }), value: format.number(results.lapses) },
+    hasLapses
+      ? { label: t("lapses", { threshold: results.lapseThresholdMs! }), value: format.number(results.lapses) }
+      : { label: t("errors"), value: format.number(results.errors) },
     { label: t("accuracy"), value: percent(results.accuracy) },
     { label: t("variability"), value: percent(results.rtCv) },
     {
@@ -40,7 +69,9 @@ export async function RunResults({ run }: { run: RunDetails }) {
           ? "—"
           : format.number(results.rateCorrectPerSecond, { maximumFractionDigits: 2 }),
     },
-    { label: t("falseStarts"), value: format.number(results.falseStarts) },
+    hasLapses
+      ? { label: t("falseStarts"), value: format.number(results.falseStarts) }
+      : { label: t("misses"), value: format.number(results.misses) },
     { label: t("trials"), value: format.number(results.trialCount) },
   ];
 
@@ -52,8 +83,18 @@ export async function RunResults({ run }: { run: RunDetails }) {
           <span className="text-[clamp(4rem,14vw,8rem)] tabular-nums">{ms(results.meanRtMs)}</span>
           <span className="text-2xl md:text-3xl">ms</span>
         </p>
-        <p className="mt-4 text-trait">{t("meanRt")}</p>
+        <p className="mt-4 text-trait">{t(hasLapses ? "meanRt" : "meanRtChoice")}</p>
       </div>
+
+      {run.difficultyStart && run.difficultyEnd ? (
+        <section className="mt-10">
+          <h2 className="type-wide text-2xl font-bold">{t("difficultyTitle")}</h2>
+          <p className="mt-2 max-w-[60ch] text-lg">
+            {t("difficultyChange", { start: describe(run.difficultyStart), end: describe(run.difficultyEnd) })}
+          </p>
+          <p className="mt-1 text-schiste">{t("difficultyNext")}</p>
+        </section>
+      ) : null}
 
       <dl className="mt-10 grid grid-cols-2 gap-x-8 md:grid-cols-3">
         {stats.map((stat) => (
@@ -67,10 +108,11 @@ export async function RunResults({ run }: { run: RunDetails }) {
       {results.minutes.length > 0 ? (
         <section className="mt-12">
           <h2 className="type-wide text-2xl font-bold">{t("minuteTitle")}</h2>
-          <p className="mt-2 max-w-[60ch] text-schiste">{t("minuteIntro")}</p>
+          <p className="mt-2 max-w-[60ch] text-schiste">{t(hasLapses ? "minuteIntro" : "minuteIntroChoice")}</p>
           <MinuteChart minutes={results.minutes} labels={{ minute: t("minuteLabel"), lapses: t("minuteLapses") }} />
         </section>
       ) : null}
+      {actions}
     </>
   );
 }

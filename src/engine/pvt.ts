@@ -118,6 +118,7 @@ export function respond(run: PvtRun, at: number, response: TrialResponse): PvtRu
           correct: false,
           stimulus: null,
           response,
+          difficulty: null,
         },
       ],
     };
@@ -184,6 +185,7 @@ function afterStimulus(
     practice: run.phase === "practice",
     onsetMs: run.stimulusOnsetMs,
     stimulus: { isiMs: run.currentIsiMs },
+    difficulty: null,
     ...result,
   };
   const trials = [...run.trials, trial];

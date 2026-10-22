@@ -18,21 +18,26 @@ export type RtResults = {
   meanRtMs: number | null;
   /** Coefficient of variation (sample SD / mean) of hit reaction times. */
   rtCv: number | null;
-  /** Slow responses at or above the threshold, plus misses. */
+  /** PVT only: slow responses at or above the threshold, plus misses. Zero when there is no threshold. */
   lapses: number;
+  /** Wrong choices (choice exercises such as n-back). */
+  errors: number;
   misses: number;
   falseStarts: number;
   /** Correct responses per second of total reaction time (Woltz & Was rate correct score). */
   rateCorrectPerSecond: number | null;
-  lapseThresholdMs: number;
+  lapseThresholdMs: number | null;
   minutes: MinuteResult[];
 };
 
-export function computeRtResults(trials: Trial[], options: { lapseThresholdMs: number }): RtResults {
+/** Exercises without a lapse threshold (choice tasks) do not count misses as lapses. */
+export function computeRtResults(trials: Trial[], options: { lapseThresholdMs: number | null }): RtResults {
+  const missesAreLapses = options.lapseThresholdMs !== null;
   const counted = trials.filter((trial) => !trial.practice);
   const hits: number[] = [];
   let correctCount = 0;
   let lapses = 0;
+  let errors = 0;
   let misses = 0;
   let falseStarts = 0;
   let rtTotalMs = 0;
@@ -48,8 +53,11 @@ export function computeRtResults(trials: Trial[], options: { lapseThresholdMs: n
         lapses++;
         break;
       case "miss":
-        lapses++;
+        if (missesAreLapses) lapses++;
         misses++;
+        break;
+      case "error":
+        errors++;
         break;
       case "false_start":
         falseStarts++;
@@ -64,15 +72,16 @@ export function computeRtResults(trials: Trial[], options: { lapseThresholdMs: n
     meanRtMs: mean(hits),
     rtCv: coefficientOfVariation(hits),
     lapses,
+    errors,
     misses,
     falseStarts,
     rateCorrectPerSecond: rtTotalMs > 0 ? correctCount / (rtTotalMs / 1000) : null,
     lapseThresholdMs: options.lapseThresholdMs,
-    minutes: byMinute(counted),
+    minutes: byMinute(counted, missesAreLapses),
   };
 }
 
-function byMinute(trials: Trial[]): MinuteResult[] {
+function byMinute(trials: Trial[], missesAreLapses: boolean): MinuteResult[] {
   const buckets = new Map<number, Trial[]>();
   for (const trial of trials) {
     const at = trial.onsetMs ?? trial.responseMs;
@@ -93,7 +102,7 @@ function byMinute(trials: Trial[]): MinuteResult[] {
         trialCount: bucket.length,
         meanRtMs: mean(hits),
         accuracy: correct / bucket.length,
-        lapses: bucket.filter((t) => t.outcome === "lapse" || t.outcome === "miss").length,
+        lapses: bucket.filter((t) => t.outcome === "lapse" || (missesAreLapses && t.outcome === "miss")).length,
       };
     });
 }
