@@ -37,9 +37,65 @@
   },
   "home": {
     "greeting": "Bonjour, {name}.",
-    "intro": "Ton entraînement commencera par un bilan : il mesure tes quatre capacités cognitives à froid, puis en état de fatigue. Le bilan sera disponible dans une prochaine version.",
+    "intro": "Ton entraînement commencera par un bilan : il mesure tes quatre capacités cognitives à froid, puis en état de fatigue. Le bilan arrive dans une prochaine version.",
     "loading": "Chargement de ton espace…",
     "signOut": "Se déconnecter",
-    "signingOut": "Déconnexion…"
+    "signingOut": "Déconnexion…",
+    "freePracticeIntro": "En attendant, tu peux t'entraîner librement sur un exercice.",
+    "freePracticeLink": "Ouvrir l'entraînement libre"
+  },
+  "nav": {
+    "freePractice": "Entraînement libre"
+  },
+  "freePractice": {
+    "title": "Entraînement libre",
+    "intro": "Choisis un exercice et sa durée. Ces séances sont enregistrées dans ton historique, sans remplacer la séance du jour.",
+    "pvtName": "Vigilance (PVT)",
+    "pvtDescription": "Attention soutenue : réagir le plus vite possible à un signal imprévisible.",
+    "moreSoon": "D'autres exercices arrivent : n-back, Stroop, flanker, temps de réaction à choix et symboles-chiffres."
+  },
+  "pvt": {
+    "title": "Vigilance (PVT)",
+    "domain": "Attention soutenue",
+    "instructions": "Un compteur jaune apparaît à des moments imprévisibles. Dès qu'il apparaît, appuie sur la barre d'espace, ou touche l'écran sur mobile. Ne réponds pas avant qu'il apparaisse : une réponse anticipée compte comme un faux départ.",
+    "durationLabel": "Durée de l'exercice",
+    "minutes": "{minutes} min",
+    "practiceNote": "Tu commences par 3 essais d'entraînement, qui ne comptent pas dans tes résultats.",
+    "start": "Commencer l'entraînement",
+    "starting": "Préparation…",
+    "practiceBadge": "Essais d'entraînement",
+    "waitHint": "Appuie dès que le compteur apparaît.",
+    "pause": "Pause",
+    "resume": "Reprendre",
+    "stop": "Arrêter l'exercice",
+    "pausedTitle": "En pause",
+    "pausedBody": "Le temps de pause n'est pas compté. Un signal interrompu par la pause est annulé.",
+    "practiceDoneTitle": "Essais terminés",
+    "practiceDoneBody": "L'exercice dure {minutes} min. Installe-toi au calme, puis commence quand tu es prêt.",
+    "beginMain": "Commencer l'exercice",
+    "saving": "Enregistrement de tes résultats…",
+    "errorTitle": "L'exercice n'a pas pu être enregistré",
+    "errorBody": "Tes réponses sont gardées sur cet appareil et seront renvoyées automatiquement à ta prochaine visite. Vérifie ta connexion, puis reviens à la liste des exercices.",
+    "backToList": "Revenir aux exercices"
+  },
+  "results": {
+    "title": "Résultats du PVT",
+    "loading": "Chargement des résultats…",
+    "duration": "exercice de {minutes} min",
+    "meanRt": "Temps de réaction moyen, sans les lapses ni les faux départs.",
+    "lapses": "Lapses (≥ {threshold} ms ou sans réponse)",
+    "accuracy": "Précision",
+    "variability": "Variabilité du temps de réaction",
+    "rateCorrect": "Bonnes réponses par seconde de réaction",
+    "falseStarts": "Faux départs",
+    "trials": "Essais comptés",
+    "minuteTitle": "Minute par minute",
+    "minuteIntro": "Ton temps de réaction moyen à chaque minute. Une barre qui s'allonge et des lapses qui apparaissent montrent le moment où ta vigilance décroche.",
+    "minuteLabel": "Minute",
+    "minuteLapses": "lapses",
+    "incomplete": "Cet exercice a été interrompu avant la fin. Ses réponses sont enregistrées, mais aucun résultat n'est calculé.",
+    "pending": "Les résultats de cet exercice ne sont pas encore calculés.",
+    "again": "Refaire un PVT",
+    "backToList": "Revenir aux exercices"
   }
 }
