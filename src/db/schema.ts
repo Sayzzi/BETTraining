@@ -94,6 +94,7 @@ export const verification = pgTable(
 
 export const sessionKind = pgEnum("session_kind", ["free_practice", "bet", "light", "assessment"]);
 export const runStatus = pgEnum("run_status", ["in_progress", "completed", "incomplete"]);
+export const sessionContext = pgEnum("session_context", ["rest", "before_sport", "after_sport"]);
 export const trialOutcome = pgEnum("trial_outcome", ["hit", "error", "lapse", "miss", "false_start"]);
 
 export const trainingSession = pgTable(
@@ -108,6 +109,16 @@ export const trainingSession = pgTable(
     device: text("device").notNull(),
     inputMode: text("input_mode").notNull(),
     userAgent: text("user_agent"),
+    /** BET sessions: when the session sits relative to physical activity, and the chosen duration. */
+    context: sessionContext("context"),
+    durationMin: integer("duration_min"),
+    /** Self-ratings on 0-10 scales, before and after the session. */
+    preFatigue: integer("pre_fatigue"),
+    postFatigue: integer("post_fatigue"),
+    perceivedEffort: integer("perceived_effort"),
+    motivation: integer("motivation"),
+    /** Completed load: perceived effort times duration in minutes. */
+    sessionLoad: integer("session_load"),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
   },
@@ -124,6 +135,8 @@ export const exerciseRun = pgTable(
     exercise: text("exercise").notNull(),
     /** Part of the session the run belongs to (assessment: cold, bet, fatigued); null in free practice. */
     block: text("block"),
+    /** Saved level this run reads and updates (such as "stroop:bet"); null means the exercise itself. */
+    difficultyKey: text("difficulty_key"),
     position: integer("position").notNull(),
     config: jsonb("config").notNull(),
     seed: bigint("seed", { mode: "number" }).notNull(),

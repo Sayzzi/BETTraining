@@ -1,0 +1,216 @@
+// Application layer for BET sessions: one training session holding the
+// planned runs (fatigue checks, targeted block, BET block), plus the
+// self-ratings taken before and after.
+
+import { and, asc, count, desc, eq } from "drizzle-orm";
+import { z } from "zod";
+import type { Database } from "@/db/client";
+import { exerciseRun, trainingSession } from "@/db/schema";
+import { describeRunDifficulty, type ExerciseConfig, type ExerciseId } from "@/engine/exercises";
+import { randomSeed } from "@/engine/random";
+import type { RtResults } from "@/engine/results";
+import {
+  BET_DURATIONS_MIN,
+  fatigueCheckChange,
+  planBetSession,
+  sessionLoad,
+  type SessionBlock,
+} from "@/engine/session-plan";
+import { hasCompletedAssessment } from "./assessment";
+import { abandonOpenSessions, currentLevel, deviceInput, NotFoundError, type StartedRun } from "./training";
+
+/** The session needs a completed assessment first. */
+export class AssessmentRequiredError extends Error {}
+
+const rating = z.number().int().min(0).max(10);
+
+export const startBetSessionInput = deviceInput.extend({
+  durationMin: z.union(BET_DURATIONS_MIN.map((value) => z.literal(value))),
+  context: z.enum(["rest", "before_sport", "after_sport"]),
+  preFatigue: rating,
+});
+
+export const finishBetSessionInput = z.object({
+  postFatigue: rating,
+  perceivedEffort: rating,
+  motivation: rating,
+});
+
+export type SessionStepRun = StartedRun & { position: number; block: SessionBlock };
+export type StartedBetSession = { sessionId: string; steps: SessionStepRun[] };
+
+export async function startBetSession(
+  db: Database,
+  userId: string,
+  input: z.infer<typeof startBetSessionInput>,
+  timeScale = 1,
+): Promise<StartedBetSession> {
+  const { durationMin, context, preFatigue, device, inputMode, userAgent } = startBetSessionInput.parse(input);
+  if (!(await hasCompletedAssessment(db, userId))) throw new AssessmentRequiredError();
+
+  return db.transaction(async (tx) => {
+    await abandonOpenSessions(tx, userId);
+    const history = await betHistory(tx, userId);
+    const plan = planBetSession(durationMin, history, timeScale);
+
+    const [session] = await tx
+      .insert(trainingSession)
+      .values({ userId, kind: "bet", device, inputMode, userAgent, context, durationMin, preFatigue })
+      .returning({ id: trainingSession.id });
+
+    const steps = await Promise.all(
+      plan.map(async (step) => ({
+        ...step,
+        seed: randomSeed(),
+        level: step.difficultyKey ? await currentLevel(tx, userId, step.exercise, step.difficultyKey) : null,
+      })),
+    );
+    const runs = await tx
+      .insert(exerciseRun)
+      .values(
+        steps.map((step) => ({
+          sessionId: session.id,
+          exercise: step.exercise,
+          block: step.block,
+          difficultyKey: step.difficultyKey,
+          position: step.position,
+          config: step.config,
+          seed: step.seed,
+          difficultyStart: step.level === null ? null : describeRunDifficulty(step.exercise, step.config, step.level),
+        })),
+      )
+      .returning({ id: exerciseRun.id, position: exerciseRun.position });
+
+    const runIdAt = new Map(runs.map((run) => [run.position, run.id]));
+    return {
+      sessionId: session.id,
+      steps: steps.map((step) => ({
+        sessionId: session.id,
+        runId: runIdAt.get(step.position)!,
+        exercise: step.exercise,
+        seed: step.seed,
+        config: step.config,
+        level: step.level,
+        position: step.position,
+        block: step.block,
+      })),
+    };
+  });
+}
+
+export type FinishBetSessionResult = { status: "finished"; sessionLoad: number } | { status: "runs_pending" };
+
+/** Records the closing self-ratings and the completed load once every run is done. */
+export async function finishBetSession(
+  db: Database,
+  userId: string,
+  sessionId: string,
+  input: z.infer<typeof finishBetSessionInput>,
+): Promise<FinishBetSessionResult> {
+  const ratings = finishBetSessionInput.parse(input);
+  const session = await findOwnedBetSession(db, userId, sessionId);
+  if (session.status !== "completed") return { status: "runs_pending" };
+
+  const load = sessionLoad(ratings.perceivedEffort, session.durationMin!);
+  await db
+    .update(trainingSession)
+    .set({ ...ratings, sessionLoad: load })
+    .where(eq(trainingSession.id, sessionId));
+  return { status: "finished", sessionLoad: load };
+}
+
+export type BetSessionSummary = {
+  id: string;
+  status: "in_progress" | "completed" | "incomplete";
+  context: "rest" | "before_sport" | "after_sport";
+  durationMin: number;
+  startedAt: Date;
+  ratings: {
+    preFatigue: number | null;
+    postFatigue: number | null;
+    perceivedEffort: number | null;
+    motivation: number | null;
+  };
+  sessionLoad: number | null;
+  fatigueCheck: ReturnType<typeof fatigueCheckChange>;
+  runs: {
+    id: string;
+    block: SessionBlock;
+    exercise: ExerciseId;
+    status: "in_progress" | "completed" | "incomplete";
+    config: ExerciseConfig;
+    results: RtResults | null;
+  }[];
+};
+
+export async function getBetSessionSummary(db: Database, userId: string, sessionId: string): Promise<BetSessionSummary> {
+  const session = await findOwnedBetSession(db, userId, sessionId);
+  const rows = await db
+    .select({
+      id: exerciseRun.id,
+      block: exerciseRun.block,
+      exercise: exerciseRun.exercise,
+      status: exerciseRun.status,
+      config: exerciseRun.config,
+      results: exerciseRun.results,
+    })
+    .from(exerciseRun)
+    .where(eq(exerciseRun.sessionId, sessionId))
+    .orderBy(asc(exerciseRun.position));
+  const runs = rows.map((row) => ({
+    ...row,
+    block: row.block as SessionBlock,
+    exercise: row.exercise as ExerciseId,
+    config: row.config as ExerciseConfig,
+    results: row.results as RtResults | null,
+  }));
+  const resultsOf = (block: SessionBlock) => runs.find((run) => run.block === block)?.results ?? null;
+
+  return {
+    id: session.id,
+    status: session.status,
+    context: session.context!,
+    durationMin: session.durationMin!,
+    startedAt: session.startedAt,
+    ratings: {
+      preFatigue: session.preFatigue,
+      postFatigue: session.postFatigue,
+      perceivedEffort: session.perceivedEffort,
+      motivation: session.motivation,
+    },
+    sessionLoad: session.sessionLoad,
+    fatigueCheck: fatigueCheckChange(resultsOf("fatigue_open"), resultsOf("fatigue_close")),
+    runs,
+  };
+}
+
+/** How many BET sessions the user started, and which exercises filled the last BET block. */
+async function betHistory(db: Database | Parameters<Parameters<Database["transaction"]>[0]>[0], userId: string) {
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(trainingSession)
+    .where(and(eq(trainingSession.userId, userId), eq(trainingSession.kind, "bet")));
+  const [last] = await db
+    .select({ id: trainingSession.id })
+    .from(trainingSession)
+    .where(and(eq(trainingSession.userId, userId), eq(trainingSession.kind, "bet")))
+    .orderBy(desc(trainingSession.startedAt))
+    .limit(1);
+  const previous = last
+    ? await db
+        .select({ exercise: exerciseRun.exercise })
+        .from(exerciseRun)
+        .where(and(eq(exerciseRun.sessionId, last.id), eq(exerciseRun.block, "bet")))
+    : [];
+  return { betSessionCount: total, previousBetExercises: previous.map((row) => row.exercise as ExerciseId) };
+}
+
+async function findOwnedBetSession(db: Database, userId: string, sessionId: string) {
+  if (!z.uuid().safeParse(sessionId).success) throw new NotFoundError("Session not found");
+  const [session] = await db
+    .select()
+    .from(trainingSession)
+    .where(and(eq(trainingSession.id, sessionId), eq(trainingSession.userId, userId), eq(trainingSession.kind, "bet")));
+  if (!session) throw new NotFoundError("Session not found");
+  return session;
+}

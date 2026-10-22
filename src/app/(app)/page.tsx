@@ -37,14 +37,16 @@ async function Home() {
             })}
           </p>
           <div className="mt-6 flex flex-wrap gap-6">
-            <Link href={`/bilan/resultats/${latest.id}`} className={PRIMARY}>
+            <Link href="/seance" className={PRIMARY}>
+              {t("startSession")}
+            </Link>
+            <Link href={`/bilan/resultats/${latest.id}`} className="leading-12 font-semibold underline underline-offset-4">
               {t("seeAssessment")}
             </Link>
             <Link href="/bilan" className="leading-12 font-semibold underline underline-offset-4">
               {t("retakeAssessment")}
             </Link>
           </div>
-          <p className="mt-8 text-schiste">{t("dailySessionSoon")}</p>
         </section>
       ) : (
         // Without an assessment, the algorithm has no starting level: it comes first.

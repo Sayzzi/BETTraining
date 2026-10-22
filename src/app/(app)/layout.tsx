@@ -10,7 +10,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Link href="/" className="type-wide text-lg font-bold">
           {t("brand")}
         </Link>
-        <nav className="flex items-center gap-5 whitespace-nowrap">
+        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 whitespace-nowrap">
+          <Link href="/seance" className="text-sm font-semibold underline-offset-4 hover:underline">
+            {t("nav.session")}
+          </Link>
           <Link href="/bilan" className="text-sm font-semibold underline-offset-4 hover:underline">
             {t("nav.assessment")}
           </Link>

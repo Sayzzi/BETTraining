@@ -120,6 +120,14 @@ export function finalLevel(config: ExerciseConfig, startLevel: number | null, tr
 
 export type DifficultySnapshot = { level: number } & Record<string, number>;
 
+/** Snapshot for a run, honouring a conflict share pinned by its configuration (BET block). */
+export function describeRunDifficulty(exercise: ExerciseId, config: ExerciseConfig, level: number): DifficultySnapshot {
+  const snapshot = describeDifficulty(exercise, level);
+  return "fixedIncongruentRate" in config && config.fixedIncongruentRate !== undefined
+    ? { ...snapshot, incongruentRate: config.fixedIncongruentRate }
+    : snapshot;
+}
+
 /** Level plus the parameters it sets, as stored with a run. */
 export function describeDifficulty(exercise: ExerciseId, level: number): DifficultySnapshot {
   switch (exercise) {

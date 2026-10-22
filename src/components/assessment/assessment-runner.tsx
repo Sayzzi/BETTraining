@@ -3,32 +3,25 @@
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import type { AssessmentBlock } from "@/engine/assessment";
 import { detectDevice, detectInputMode } from "@/components/player/device";
-import { NBackPlayer } from "@/components/player/nback-player";
-import { PvtPlayer } from "@/components/player/pvt-player";
-import { StroopPlayer } from "@/components/player/stroop-player";
-import { SymbolDigitPlayer } from "@/components/player/symbol-digit-player";
-import type { FixedRun } from "@/components/player/use-exercise-run";
+import { PRIMARY_BUTTON, ProtocolRunner } from "@/components/protocol/protocol-runner";
+import type { AssessmentBlock } from "@/engine/assessment";
 import type { AssessmentStepRun, StartedAssessment } from "@/server/assessment";
 
 type State =
   | { kind: "intro"; interrupted: boolean }
   | { kind: "starting" }
-  | { kind: "transition"; index: number }
-  | { kind: "step"; index: number }
+  | { kind: "running"; plan: StartedAssessment }
   | { kind: "finishing" }
   | { kind: "error" };
 
 const PART: Record<AssessmentBlock, number> = { cold: 1, bet: 2, fatigued: 3 };
-const PRIMARY = "h-12 rounded-md bg-ardoise px-6 font-semibold text-brume hover:bg-ardoise/90 disabled:opacity-70";
 
-/** Plays the nine protocol steps in order, with a short briefing before each part. */
+/** Intro, then the nine protocol steps, then the scores. */
 export function AssessmentRunner() {
   const t = useTranslations("assessment");
   const router = useRouter();
   const [state, setState] = useState<State>({ kind: "intro", interrupted: false });
-  const [plan, setPlan] = useState<StartedAssessment | null>(null);
 
   async function start() {
     setState({ kind: "starting" });
@@ -43,8 +36,7 @@ export function AssessmentRunner() {
         }),
       });
       if (!response.ok) throw new Error(`Start failed with status ${response.status}`);
-      setPlan(await response.json());
-      setState({ kind: "transition", index: 0 });
+      setState({ kind: "running", plan: await response.json() });
     } catch {
       setState({ kind: "error" });
     }
@@ -59,17 +51,6 @@ export function AssessmentRunner() {
     } catch {
       setState({ kind: "error" });
     }
-  }
-
-  function next(index: number) {
-    const steps = plan!.steps;
-    if (index + 1 >= steps.length) return void finish(plan!.assessmentId);
-    // A briefing opens each new part of the protocol.
-    setState(
-      steps[index + 1].block !== steps[index].block
-        ? { kind: "transition", index: index + 1 }
-        : { kind: "step", index: index + 1 },
-    );
   }
 
   if (state.kind === "intro" || state.kind === "starting") {
@@ -91,7 +72,7 @@ export function AssessmentRunner() {
           ))}
         </ol>
         <p className="mt-8 text-lg">{t("advice")}</p>
-        <button type="button" onClick={start} disabled={state.kind === "starting"} className={`mt-8 ${PRIMARY}`}>
+        <button type="button" onClick={start} disabled={state.kind === "starting"} className={`mt-8 ${PRIMARY_BUTTON}`}>
           {state.kind === "starting" ? t("starting") : t("start")}
         </button>
       </section>
@@ -103,7 +84,11 @@ export function AssessmentRunner() {
       <section role="alert" className="max-w-[60ch]">
         <h1 className="type-wide text-3xl font-extrabold">{t("errorTitle")}</h1>
         <p className="mt-4 text-lg text-schiste">{t("errorBody")}</p>
-        <button type="button" onClick={() => setState({ kind: "intro", interrupted: false })} className={`mt-8 ${PRIMARY}`}>
+        <button
+          type="button"
+          onClick={() => setState({ kind: "intro", interrupted: false })}
+          className={`mt-8 ${PRIMARY_BUTTON}`}
+        >
           {t("restart")}
         </button>
       </section>
@@ -118,48 +103,24 @@ export function AssessmentRunner() {
     );
   }
 
-  const step = plan!.steps[state.index];
-  if (state.kind === "transition") {
-    return (
-      <section className="max-w-[60ch]">
-        <p className="text-sm font-semibold text-schiste">{t("partOf", { part: PART[step.block] })}</p>
-        <h1 className="type-wide mt-2 text-4xl font-extrabold">{t(`parts.${step.block}.title`)}</h1>
-        <p className="mt-6 text-lg">{t(`parts.${step.block}.briefing`)}</p>
-        <button type="button" onClick={() => setState({ kind: "step", index: state.index })} className={`mt-8 ${PRIMARY}`}>
-          {t("continue")}
-        </button>
-      </section>
-    );
-  }
-
-  const fixed: FixedRun = {
-    step,
-    label: stepLabel(t, step, plan!.steps),
-    onCompleted: () => next(state.index),
-    onStop: () => setState({ kind: "intro", interrupted: true }),
-  };
-  // Keyed by position so every step gets a fresh player.
-  return <StepPlayer key={step.position} exercise={step.exercise} fixed={fixed} />;
-}
-
-function stepLabel(t: ReturnType<typeof useTranslations<"assessment">>, step: AssessmentStepRun, steps: AssessmentStepRun[]) {
-  const part = PART[step.block];
-  if (step.block === "bet") return t("stepLabelBet", { part });
-  const inBlock = steps.filter((s) => s.block === step.block);
-  return t("stepLabel", { part, test: inBlock.indexOf(step) + 1, total: inBlock.length });
-}
-
-function StepPlayer({ exercise, fixed }: { exercise: string; fixed: FixedRun }) {
-  switch (exercise) {
-    case "pvt_b":
-      return <PvtPlayer fixed={fixed} />;
-    case "nback":
-      return <NBackPlayer fixed={fixed} />;
-    case "stroop":
-      return <StroopPlayer fixed={fixed} />;
-    case "symbol_digit":
-      return <SymbolDigitPlayer fixed={fixed} />;
-    default:
-      throw new Error(`No player for ${exercise}`);
-  }
+  const { plan } = state;
+  return (
+    <ProtocolRunner<AssessmentStepRun>
+      steps={plan.steps}
+      briefing={(step) => ({
+        eyebrow: t("partOf", { part: PART[step.block] }),
+        title: t(`parts.${step.block}.title`),
+        body: t(`parts.${step.block}.briefing`),
+        action: t("continue"),
+      })}
+      stepLabel={(step) => {
+        const part = PART[step.block];
+        if (step.block === "bet") return t("stepLabelBet", { part });
+        const inBlock = plan.steps.filter((s) => s.block === step.block);
+        return t("stepLabel", { part, test: inBlock.indexOf(step) + 1, total: inBlock.length });
+      }}
+      onFinished={() => void finish(plan.assessmentId)}
+      onStopped={() => setState({ kind: "intro", interrupted: true })}
+    />
+  );
 }

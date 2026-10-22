@@ -142,6 +142,17 @@ describe("choice task run", () => {
     expect(run.level).toBe(6);
   });
 
+  it("pins the conflict share when the configuration fixes it, leaving only speed to adapt", () => {
+    let run = startChoiceTask({ ...CONFIG, durationMs: 600_000, fixedIncongruentRate: 1 }, SPEC, 4, 0, 1);
+    let at = 0;
+    for (let i = 0; i < 50; i++) {
+      [run, at] = nextStimulus(run, at);
+      expect(run.current!.stimulus.congruent).toBe(false);
+      run = respond(run, at + 300, run.current!.stimulus.side, "keyboard");
+    }
+    expect(run.trials.at(-1)!.difficulty).toMatchObject({ incongruentRate: 1, responseWindowMs: expect.any(Number) });
+  });
+
   it("draws incongruent stimuli at the rate set by the level", () => {
     const count = (level: number) => {
       let run = startChoiceTask({ ...CONFIG, durationMs: 10_000_000 }, SPEC, 3, 0, level);

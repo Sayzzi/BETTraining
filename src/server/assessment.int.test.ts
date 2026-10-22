@@ -2,12 +2,6 @@ import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { createDb } from "@/db/client";
 import { exerciseRun, trainingSession, user } from "@/db/schema";
-import * as choice from "@/engine/choice-task";
-import * as nback from "@/engine/nback";
-import * as pvt from "@/engine/pvt";
-import { STROOP_SPEC } from "@/engine/stroop";
-import { symbolDigitKey, symbolDigitSpec } from "@/engine/symbol-digit";
-import type { Trial } from "@/engine/trial";
 import {
   completeAssessment,
   getAssessment,
@@ -15,6 +9,7 @@ import {
   startAssessment,
   type AssessmentStepRun,
 } from "./assessment";
+import { playRun } from "../../tests/setup/play-run";
 import { abandonSession, completeRun, NotFoundError, recordTrials, startFreePractice } from "./training";
 
 const db = createDb(process.env.DATABASE_URL!);
@@ -31,41 +26,8 @@ async function createUser() {
   return id;
 }
 
-/** Plays one protocol step with its real engine; `rtMs` is the simulated reaction time. */
-function playStep(step: AssessmentStepRun, rtMs: number): Trial[] {
-  let at = 0;
-  if (step.exercise === "pvt_b") {
-    let run = pvt.startPvt(step.config as pvt.PvtConfig, step.seed, 0);
-    while (run.phase !== "done") {
-      at += 10;
-      run = pvt.frame(run, at);
-      if (run.stimulusOnsetMs !== null) run = pvt.respond(run, at + rtMs, { input: "keyboard" });
-    }
-    return run.trials;
-  }
-  if (step.exercise === "nback") {
-    let run = nback.startNBack(step.config as nback.NBackConfig, step.seed, 0, step.level!);
-    while (run.phase !== "done") {
-      at += 10;
-      run = run.phase === "practice_done" ? nback.beginMain(run, at) : nback.frame(run, at);
-      if (run.current?.scored && !run.current.answer) {
-        run = nback.respond(run, at + rtMs, { choice: run.current.isTarget ? "match" : "different", input: "keyboard" });
-      }
-    }
-    return run.trials;
-  }
-  const spec = step.exercise === "stroop" ? STROOP_SPEC : symbolDigitSpec(symbolDigitKey(step.seed));
-  let run = choice.startChoiceTask(step.config as choice.ChoiceTaskConfig, spec as never, step.seed, 0, step.level!);
-  while (run.phase !== "done") {
-    at += 10;
-    run = run.phase === "practice_done" ? choice.beginMain(run, at) : choice.frame(run, at);
-    if (run.current) run = choice.respond(run, at + rtMs, spec.correctChoice(run.current.stimulus as never), "keyboard");
-  }
-  return run.trials;
-}
-
 async function completeStep(userId: string, step: AssessmentStepRun, rtMs: number) {
-  const trials = playStep(step, rtMs);
+  const trials = playRun(step, rtMs);
   await recordTrials(db, userId, step.runId, { trials });
   return completeRun(db, userId, step.runId, { pauses: [], trialCount: trials.length });
 }

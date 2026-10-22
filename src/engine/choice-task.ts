@@ -35,6 +35,8 @@ export type ChoiceTaskConfig = {
   target: number;
   /** False freezes the level (assessments must stay comparable). Defaults to true. */
   adaptive?: boolean;
+  /** Pins the share of conflicting stimuli, so difficulty only moves the speed levers (BET block). */
+  fixedIncongruentRate?: number;
 };
 
 export type ChoicePhase = "practice" | "practice_done" | "main" | "done";
@@ -62,6 +64,14 @@ const ANTICIPATION_MS = 100;
 export function interpolate(level: number, minLevel: number, maxLevel: number, from: number, to: number) {
   const ratio = (Math.min(maxLevel, Math.max(minLevel, level)) - minLevel) / (maxLevel - minLevel);
   return from + (to - from) * ratio;
+}
+
+/** The spec's parameters at a level, with the configuration's pinned conflict share if any. */
+export function choiceParameters<S>(spec: ChoiceTaskSpec<S>, config: ChoiceTaskConfig, level: number): ChoiceParameters {
+  const parameters = spec.parameters(level);
+  return config.fixedIncongruentRate === undefined
+    ? parameters
+    : { ...parameters, incongruentRate: config.fixedIncongruentRate };
 }
 
 export function startChoiceTask<S>(
@@ -100,7 +110,7 @@ export function frame<S>(run: ChoiceTaskRun<S>, at: number): ChoiceTaskRun<S> {
   if (run.phase === "main" && now >= run.config.durationMs) return { ...run, phase: "done" };
   if (now < run.nextOnsetMs) return run;
 
-  const parameters = run.spec.parameters(run.level);
+  const parameters = choiceParameters(run.spec, run.config, run.level);
   const [stimulus, rng] = run.spec.makeStimulus(run.rng, parameters);
   return { ...run, rng, current: { stimulus, onsetMs: now, parameters } };
 }

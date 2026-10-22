@@ -38,3 +38,5 @@ Après une modification de `src/db/schema.ts`, génère la migration avec `pnpm 
 | `pnpm db:test:up` puis `pnpm test:e2e` | Parcours de bout en bout avec Playwright (ordinateur et mobile), sur un serveur de dev au port 3100 relié à la base de test. Lance `pnpm exec playwright install chromium` la première fois. |
 
 `pnpm lint` et `pnpm typecheck` vérifient le style et les types.
+
+Les tests de bout en bout lancent le serveur avec `TEST_TIME_SCALE=0.02` : toutes les durées du bilan et de la séance BET sont divisées par 50. La même variable sert à essayer ces parcours à la main sans attendre 40 minutes.
