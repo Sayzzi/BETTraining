@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  --brume: #e9edf1;
+  --ardoise: #18212e;
+  --schiste: #5a6778;
+  --trait: #c9d1da;
+  --chrono: #ffc21a;
+  --alerte: #b42318;
+}
+
+@theme inline {
+  --color-brume: var(--brume);
+  --color-ardoise: var(--ardoise);
+  --color-schiste: var(--schiste);
+  --color-trait: var(--trait);
+  --color-chrono: var(--chrono);
+  --color-alerte: var(--alerte);
+  --font-sans: var(--font-archivo);
+}
+
+body {
+  background: var(--brume);
+  color: var(--ardoise);
+  font-family: var(--font-archivo), system-ui, sans-serif;
+}
+
+/* Wide cut of Archivo for headings and timing figures. */
+.type-wide {
+  font-stretch: 125%;
+  font-variation-settings: "wdth" 125;
+}
+
+:focus-visible {
+  outline: 3px solid var(--chrono);
+  outline-offset: 2px;
+}
