@@ -4,7 +4,9 @@ import { Suspense } from "react";
 import { db } from "@/db/client";
 import type { AssessmentResults } from "@/engine/assessment";
 import { getCurrentUser } from "@/lib/current-user";
+import { PlanExplanationText } from "@/components/session/plan-explanation";
 import { latestAssessments } from "@/server/assessment";
+import { previewBetSession } from "@/server/bet-session";
 
 const PRIMARY = "inline-block h-12 rounded-md bg-ardoise px-6 leading-12 font-semibold text-brume hover:bg-ardoise/90";
 
@@ -19,10 +21,11 @@ export default async function HomePage() {
 
 async function Home() {
   const user = await getCurrentUser();
-  const [t, format, [latest]] = await Promise.all([
+  const [t, format, [latest], preview] = await Promise.all([
     getTranslations("home"),
     getFormatter(),
     latestAssessments(db, user.id, 1),
+    previewBetSession(db, user.id),
   ]);
 
   return (
@@ -30,6 +33,14 @@ async function Home() {
       <h1 className="type-wide text-4xl font-extrabold md:text-5xl">{t("greeting", { name: user.name })}</h1>
       {latest ? (
         <section className="mt-8 max-w-[60ch]">
+          {preview ? (
+            <div className="mb-8 border-l-2 border-chrono pl-5">
+              <h2 className="type-wide text-lg font-bold">{t("nextSessionTitle")}</h2>
+              <div className="mt-2 text-lg">
+                <PlanExplanationText explanation={preview[30]} />
+              </div>
+            </div>
+          ) : null}
           <p className="text-lg">
             {t("lastAssessment", {
               date: format.dateTime(latest.completedAt!, { dateStyle: "long" }),

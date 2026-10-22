@@ -14,9 +14,12 @@ import {
   fatigueCheckChange,
   planBetSession,
   sessionLoad,
+  type BetDuration,
+  type BetHistory,
+  type PlanExplanation,
   type SessionBlock,
 } from "@/engine/session-plan";
-import { hasCompletedAssessment } from "./assessment";
+import { currentClassification, hasCompletedAssessment } from "./assessment";
 import { abandonOpenSessions, currentLevel, deviceInput, NotFoundError, type StartedRun } from "./training";
 
 /** The session needs a completed assessment first. */
@@ -37,7 +40,7 @@ export const finishBetSessionInput = z.object({
 });
 
 export type SessionStepRun = StartedRun & { position: number; block: SessionBlock };
-export type StartedBetSession = { sessionId: string; steps: SessionStepRun[] };
+export type StartedBetSession = { sessionId: string; steps: SessionStepRun[]; explanation: PlanExplanation };
 
 export async function startBetSession(
   db: Database,
@@ -47,19 +50,30 @@ export async function startBetSession(
 ): Promise<StartedBetSession> {
   const { durationMin, context, preFatigue, device, inputMode, userAgent } = startBetSessionInput.parse(input);
   if (!(await hasCompletedAssessment(db, userId))) throw new AssessmentRequiredError();
+  const classification = await currentClassification(db, userId);
 
   return db.transaction(async (tx) => {
     await abandonOpenSessions(tx, userId);
-    const history = await betHistory(tx, userId);
-    const plan = planBetSession(durationMin, history, timeScale);
+    const history = { ...(await betHistory(tx, userId)), classification };
+    const { steps: planned, explanation } = planBetSession(durationMin, history, timeScale);
 
     const [session] = await tx
       .insert(trainingSession)
-      .values({ userId, kind: "bet", device, inputMode, userAgent, context, durationMin, preFatigue })
+      .values({
+        userId,
+        kind: "bet",
+        device,
+        inputMode,
+        userAgent,
+        context,
+        durationMin,
+        preFatigue,
+        planExplanation: explanation,
+      })
       .returning({ id: trainingSession.id });
 
     const steps = await Promise.all(
-      plan.map(async (step) => ({
+      planned.map(async (step) => ({
         ...step,
         seed: randomSeed(),
         level: step.difficultyKey ? await currentLevel(tx, userId, step.exercise, step.difficultyKey) : null,
@@ -84,6 +98,7 @@ export async function startBetSession(
     const runIdAt = new Map(runs.map((run) => [run.position, run.id]));
     return {
       sessionId: session.id,
+      explanation,
       steps: steps.map((step) => ({
         sessionId: session.id,
         runId: runIdAt.get(step.position)!,
@@ -132,6 +147,7 @@ export type BetSessionSummary = {
     motivation: number | null;
   };
   sessionLoad: number | null;
+  explanation: PlanExplanation | null;
   fatigueCheck: ReturnType<typeof fatigueCheckChange>;
   runs: {
     id: string;
@@ -179,13 +195,32 @@ export async function getBetSessionSummary(db: Database, userId: string, session
       motivation: session.motivation,
     },
     sessionLoad: session.sessionLoad,
+    explanation: session.planExplanation as PlanExplanation | null,
     fatigueCheck: fatigueCheckChange(resultsOf("fatigue_open"), resultsOf("fatigue_close")),
     runs,
   };
 }
 
+/**
+ * What the next session would look like at each duration, for the home page and the setup screen.
+ * Null when the user has no completed assessment yet.
+ */
+export async function previewBetSession(
+  db: Database,
+  userId: string,
+): Promise<Record<BetDuration, PlanExplanation> | null> {
+  if (!(await hasCompletedAssessment(db, userId))) return null;
+  const [history, classification] = await Promise.all([betHistory(db, userId), currentClassification(db, userId)]);
+  return Object.fromEntries(
+    BET_DURATIONS_MIN.map((duration) => [duration, planBetSession(duration, { ...history, classification }).explanation]),
+  ) as Record<BetDuration, PlanExplanation>;
+}
+
 /** How many BET sessions the user started, and which exercises filled the last BET block. */
-async function betHistory(db: Database | Parameters<Parameters<Database["transaction"]>[0]>[0], userId: string) {
+async function betHistory(
+  db: Database | Parameters<Parameters<Database["transaction"]>[0]>[0],
+  userId: string,
+): Promise<Omit<BetHistory, "classification">> {
   const [{ total }] = await db
     .select({ total: count() })
     .from(trainingSession)

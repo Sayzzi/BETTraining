@@ -3,10 +3,13 @@ import { afterAll, describe, expect, it } from "vitest";
 import { createDb } from "@/db/client";
 import { assessment, difficultyState, exerciseRun, trainingSession, user } from "@/db/schema";
 import { playRun } from "../../tests/setup/play-run";
+import type { Classification } from "@/engine/strengths";
+import type { CognitiveDomain } from "@/engine/exercises";
 import {
   AssessmentRequiredError,
   finishBetSession,
   getBetSessionSummary,
+  previewBetSession,
   startBetSession,
   type SessionStepRun,
 } from "./bet-session";
@@ -21,8 +24,8 @@ afterAll(async () => {
   await db.$client.end();
 });
 
-/** A user who already completed an assessment. */
-async function createAssessedUser() {
+/** A user who already completed an assessment, optionally with a strengths ranking. */
+async function createAssessedUser(classification?: Partial<Record<CognitiveDomain, Classification>>) {
   const id = crypto.randomUUID();
   await db.insert(user).values({ id, name: "Jakub", email: `${id}@example.com` });
   const [session] = await db
@@ -34,7 +37,14 @@ async function createAssessedUser() {
     sessionId: session.id,
     protocolVersion: 1,
     status: "completed",
-    results: { protocolVersion: 1, domains: [], fatigueResistance: 0.9 },
+    results: {
+      protocolVersion: 1,
+      domains: [],
+      fatigueResistance: 0.9,
+      comparison: classification
+        ? { previousAssessmentId: crypto.randomUUID(), previousCompletedAt: new Date().toISOString(), domains: [], classification }
+        : null,
+    },
     completedAt: new Date(),
   });
   return id;
@@ -149,5 +159,40 @@ describe("BET sessions", () => {
     await expect(startBetSession(db, owner, { ...SESSION, preFatigue: 11 }, QUICK)).rejects.toThrow();
     const started = await startBetSession(db, owner, SESSION, QUICK);
     await expect(getBetSessionSummary(db, intruder, started.sessionId)).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("weights the targeted block by the latest ranking and explains the plan", async () => {
+    const userId = await createAssessedUser({
+      sustained_attention: "strength",
+      working_memory: "weakness",
+      inhibition: "strength",
+      processing_speed: "strength",
+    });
+    const started = await startBetSession(db, userId, { ...SESSION, durationMin: 45 }, QUICK);
+
+    expect(started.explanation).toMatchObject({ rankingAvailable: true, weaknesses: ["working_memory"] });
+    // The weakness opens the weighted cycle and takes one of the three slots.
+    const targeted = started.steps.filter((s) => s.block === "targeted").map((s) => s.exercise);
+    expect(targeted).toContain("nback");
+    expect(started.explanation.betExercises).toEqual(
+      started.steps.filter((s) => s.block === "bet").map((s) => s.exercise),
+    );
+
+    const summary = await getBetSessionSummary(db, userId, started.sessionId);
+    expect(summary.explanation).toEqual(started.explanation);
+  });
+
+  it("previews the next session at each duration, matching the plan actually generated", async () => {
+    const userId = await createAssessedUser({ working_memory: "weakness", inhibition: "strength" });
+    const preview = await previewBetSession(db, userId);
+    const started = await startBetSession(db, userId, { ...SESSION, durationMin: 60 }, QUICK);
+    expect(preview![60]).toEqual(started.explanation);
+    expect(Object.keys(preview!)).toEqual(["30", "45", "60"]);
+  });
+
+  it("has no preview before the first assessment", async () => {
+    const id = crypto.randomUUID();
+    await db.insert(user).values({ id, name: "Jakub", email: `${id}@example.com` });
+    expect(await previewBetSession(db, id)).toBeNull();
   });
 });

@@ -119,6 +119,8 @@ export const trainingSession = pgTable(
     motivation: integer("motivation"),
     /** Completed load: perceived effort times duration in minutes. */
     sessionLoad: integer("session_load"),
+    /** Why the planned session looks as it does (weaknesses, targeted domains, BET rotation). */
+    planExplanation: jsonb("plan_explanation"),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
   },

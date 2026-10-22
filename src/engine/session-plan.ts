@@ -6,6 +6,7 @@
 import { EXERCISES, exerciseConfigFor, type CognitiveDomain, type ExerciseConfig, type ExerciseId } from "./exercises";
 import { PVT_B } from "./pvt";
 import type { RtResults } from "./results";
+import type { Classification } from "./strengths";
 
 export const BET_DURATIONS_MIN = [30, 45, 60] as const;
 export type BetDuration = (typeof BET_DURATIONS_MIN)[number];
@@ -28,6 +29,26 @@ export type BetHistory = {
   betSessionCount: number;
   /** Exercises of the previous session's BET block, never repeated back to back. */
   previousBetExercises: ExerciseId[];
+  /** Strengths and weaknesses from the latest compared assessment; empty before that. */
+  classification: Partial<Record<CognitiveDomain, Classification>>;
+};
+
+/** Why the session looks the way it does, built only from things the user can see. */
+export type PlanExplanation = {
+  rankingAvailable: boolean;
+  weaknesses: CognitiveDomain[];
+  /** Domains of the targeted block, in order (cognitive training, not BET). */
+  targetedDomains: CognitiveDomain[];
+  betExercises: ExerciseId[];
+  /** The previous session's BET exercises, which this session rotates away from. */
+  replacedBetExercises: ExerciseId[];
+};
+
+export type BetSessionPlan = { steps: PlannedStep[]; explanation: PlanExplanation };
+
+export type PlanOptions = {
+  /** Targeted slots a weakness gets for each slot of a strength (2:1 by default). */
+  weaknessWeight?: number;
 };
 
 const BET_SHARE = 0.65;
@@ -51,7 +72,12 @@ const DOMAIN_EXERCISES: Record<CognitiveDomain, ExerciseId[]> = {
   processing_speed: ["choice_rt", "symbol_digit"],
 };
 
-export function planBetSession(durationMin: BetDuration, history: BetHistory, timeScale = 1): PlannedStep[] {
+export function planBetSession(
+  durationMin: BetDuration,
+  history: BetHistory,
+  timeScale = 1,
+  { weaknessWeight = WEAKNESS_WEIGHT }: PlanOptions = {},
+): BetSessionPlan {
   const checkMin = PVT_B.durationMs / 60_000;
   const betMin = Math.round(durationMin * BET_SHARE);
   const targetedMin = durationMin - 2 * checkMin - betMin;
@@ -62,12 +88,13 @@ export function planBetSession(durationMin: BetDuration, history: BetHistory, ti
 
   steps.push(fatigueCheck("fatigue_open", minutesToMs(checkMin)));
 
+  const cycle = targetedCycle(history.classification, weaknessWeight);
   for (let slot = 0; slot < targetedCount; slot++) {
-    // Consecutive slots across sessions walk the domain order, so each domain gets an equal share.
+    // Consecutive slots across sessions walk the weighted cycle, so shares hold over time.
     const turn = history.betSessionCount * targetedCount + slot;
-    const domain = DOMAIN_ORDER[turn % DOMAIN_ORDER.length];
+    const domain = cycle[turn % cycle.length];
     const choices = DOMAIN_EXERCISES[domain];
-    const exercise = choices[Math.floor(turn / DOMAIN_ORDER.length) % choices.length];
+    const exercise = choices[occurrencesBefore(cycle, domain, turn) % choices.length];
     steps.push({
       block: "targeted",
       exercise,
@@ -92,7 +119,53 @@ export function planBetSession(durationMin: BetDuration, history: BetHistory, ti
   }
 
   steps.push(fatigueCheck("fatigue_close", minutesToMs(checkMin)));
-  return steps.map((step, position) => ({ position, ...step }));
+
+  const planned = steps.map((step, position) => ({ position, ...step }));
+  const weaknesses = DOMAIN_ORDER.filter((domain) => history.classification[domain] === "weakness");
+  return {
+    steps: planned,
+    explanation: {
+      rankingAvailable: Object.keys(history.classification).length > 0,
+      weaknesses,
+      targetedDomains: planned.filter((s) => s.block === "targeted").map((s) => s.domain!),
+      betExercises: betExercises,
+      replacedBetExercises: history.previousBetExercises.filter((e) => !betExercises.includes(e)),
+    },
+  };
+}
+
+const WEAKNESS_WEIGHT = 2;
+
+/**
+ * One cycle of targeted domains where each domain appears as often as its weight
+ * (weakness: weaknessWeight, strength: 1), interleaved by smooth weighted round-robin
+ * so a domain does not come back several times in a row. Unranked domains count as weaknesses.
+ */
+function targetedCycle(
+  classification: BetHistory["classification"],
+  weaknessWeight: number,
+): CognitiveDomain[] {
+  const weights = DOMAIN_ORDER.map((domain) => (classification[domain] === "strength" ? 1 : weaknessWeight));
+  const total = weights.reduce((a, b) => a + b, 0);
+  const current = DOMAIN_ORDER.map(() => 0);
+  const cycle: CognitiveDomain[] = [];
+  for (let i = 0; i < total; i++) {
+    weights.forEach((weight, index) => (current[index] += weight));
+    let pick = 0;
+    current.forEach((value, index) => {
+      if (value > current[pick]) pick = index;
+    });
+    current[pick] -= total;
+    cycle.push(DOMAIN_ORDER[pick]);
+  }
+  return cycle;
+}
+
+/** How many times a domain came up before this turn, to alternate its exercises. */
+function occurrencesBefore(cycle: CognitiveDomain[], domain: CognitiveDomain, turn: number) {
+  const perCycle = cycle.filter((d) => d === domain).length;
+  const inPartialCycle = cycle.slice(0, turn % cycle.length).filter((d) => d === domain).length;
+  return Math.floor(turn / cycle.length) * perCycle + inPartialCycle;
 }
 
 function pickBetExercises(count: number, previous: ExerciseId[]): ExerciseId[] {

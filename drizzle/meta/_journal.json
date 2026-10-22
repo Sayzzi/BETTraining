@@ -36,6 +36,13 @@
       "when": 1792689182763,
       "tag": "0004_bet_session",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792690542740,
+      "tag": "0005_plan_explanation",
+      "breakpoints": true
     }
   ]
 }
