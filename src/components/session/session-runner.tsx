@@ -25,24 +25,29 @@ const BLOCKS: SessionBlock[] = ["fatigue_open", "targeted", "bet", "fatigue_clos
 const CHOICE =
   "cursor-pointer rounded-md border border-trait px-4 py-2.5 font-semibold has-checked:border-ardoise has-checked:bg-ardoise has-checked:text-brume has-focus-visible:outline-3 has-focus-visible:outline-chrono";
 
+export type SessionMode =
+  | { kind: "bet"; previews: Record<BetDuration, PlanExplanation>; defaultDurationMin: BetDuration }
+  | { kind: "light"; preview: PlanExplanation };
+
 /** Opening choices and rating, the planned steps, the closing ratings, then the summary. */
-export function SessionRunner({ previews }: { previews: Record<BetDuration, PlanExplanation> }) {
+export function SessionRunner({ mode }: { mode: SessionMode }) {
   const t = useTranslations("session");
   const router = useRouter();
   const [state, setState] = useState<State>({ kind: "setup", interrupted: false });
-  const [durationMin, setDurationMin] = useState<BetDuration>(30);
+  const [durationMin, setDurationMin] = useState<BetDuration>(mode.kind === "bet" ? mode.defaultDurationMin : 30);
   const [context, setContext] = useState<Context>("after_sport");
+  const [keySport, setKeySport] = useState(false);
   const [preFatigue, setPreFatigue] = useState<number | null>(null);
   const [ratings, setRatings] = useState<Ratings>({ postFatigue: null, perceivedEffort: null, motivation: null });
 
   async function start() {
     setState({ kind: "starting" });
     try {
-      const response = await fetch("/api/bet-session", {
+      const response = await fetch(mode.kind === "bet" ? "/api/bet-session" : "/api/light-session", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          durationMin,
+          ...(mode.kind === "bet" ? { durationMin } : {}),
           context,
           preFatigue,
           device: detectDevice(),
@@ -75,41 +80,51 @@ export function SessionRunner({ previews }: { previews: Record<BetDuration, Plan
   if (state.kind === "setup" || state.kind === "starting") {
     return (
       <section className="max-w-[62ch]">
-        <h1 className="type-wide text-4xl font-extrabold">{t("title")}</h1>
+        <h1 className="type-wide text-4xl font-extrabold">
+          {mode.kind === "light" ? t("lightTitle") : context === "rest" ? t("cognitiveTitle") : t("title")}
+        </h1>
         {state.kind === "setup" && state.interrupted ? (
           <p role="status" className="mt-4 font-semibold text-alerte">
             {t("interrupted")}
           </p>
         ) : null}
-        <p className="mt-6 text-lg">{t("intro")}</p>
-        <ol className="mt-6 space-y-2 border-l-2 border-trait pl-6 text-schiste">
-          {BLOCKS.map((block) => (
-            <li key={block}>{t(`blocks.${block}.summary`)}</li>
-          ))}
-        </ol>
+        {mode.kind === "light" ? (
+          <p className="mt-6 text-lg">{t("lightIntro")}</p>
+        ) : (
+          <>
+            <p className="mt-6 text-lg">{t("intro")}</p>
+            <ol className="mt-6 space-y-2 border-l-2 border-trait pl-6 text-schiste">
+              {BLOCKS.map((block) => (
+                <li key={block}>{t(`blocks.${block}.summary`)}</li>
+              ))}
+            </ol>
+          </>
+        )}
 
-        <fieldset className="mt-10">
-          <legend className="font-semibold">{t("durationLabel")}</legend>
-          <div className="mt-3 flex gap-2">
-            {BET_DURATIONS_MIN.map((minutes) => (
-              <label key={minutes} className={CHOICE}>
-                <input
-                  type="radio"
-                  name="duration"
-                  checked={durationMin === minutes}
-                  onChange={() => setDurationMin(minutes)}
-                  className="sr-only"
-                />
-                {t("minutes", { minutes })}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        {mode.kind === "bet" ? (
+          <fieldset className="mt-10">
+            <legend className="font-semibold">{t("durationLabel")}</legend>
+            <div className="mt-3 flex gap-2">
+              {BET_DURATIONS_MIN.map((minutes) => (
+                <label key={minutes} className={CHOICE}>
+                  <input
+                    type="radio"
+                    name="duration"
+                    checked={durationMin === minutes}
+                    onChange={() => setDurationMin(minutes)}
+                    className="sr-only"
+                  />
+                  {t("minutes", { minutes })}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
 
         <div className="mt-6 border-l-2 border-chrono pl-5">
           <h2 className="font-semibold">{t("planTitle")}</h2>
           <div className="mt-1 text-schiste">
-            <PlanExplanationText explanation={previews[durationMin]} />
+            <PlanExplanationText explanation={mode.kind === "bet" ? mode.previews[durationMin] : mode.preview} />
           </div>
         </div>
 
@@ -130,6 +145,22 @@ export function SessionRunner({ previews }: { previews: Record<BetDuration, Plan
             ))}
           </div>
           <p className="mt-2 text-sm text-schiste">{t(`contextHints.${context}`)}</p>
+          {context === "before_sport" ? (
+            <label className="mt-3 flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={keySport}
+                onChange={(event) => setKeySport(event.target.checked)}
+                className="size-5 accent-ardoise"
+              />
+              {t("keySportLabel")}
+            </label>
+          ) : null}
+          {context === "before_sport" && keySport ? (
+            <p role="alert" className="mt-3 border-l-2 border-alerte pl-4 font-semibold text-alerte">
+              {t("keySportWarning")}
+            </p>
+          ) : null}
         </fieldset>
 
         <div className="mt-8">

@@ -88,21 +88,15 @@ export function planBetSession(
 
   steps.push(fatigueCheck("fatigue_open", minutesToMs(checkMin)));
 
-  const cycle = targetedCycle(history.classification, weaknessWeight);
-  for (let slot = 0; slot < targetedCount; slot++) {
-    // Consecutive slots across sessions walk the weighted cycle, so shares hold over time.
-    const turn = history.betSessionCount * targetedCount + slot;
-    const domain = cycle[turn % cycle.length];
-    const choices = DOMAIN_EXERCISES[domain];
-    const exercise = choices[occurrencesBefore(cycle, domain, turn) % choices.length];
-    steps.push({
-      block: "targeted",
-      exercise,
-      domain,
-      config: withoutPractice(exerciseConfigFor(exercise, minutesToMs(targetedMin / targetedCount), TARGETED_TARGET)),
-      difficultyKey: EXERCISES[exercise].difficulty ? exercise : null,
-    });
-  }
+  steps.push(
+    ...targetedSteps(
+      history.classification,
+      weaknessWeight,
+      history.betSessionCount * targetedCount,
+      targetedCount,
+      minutesToMs(targetedMin / targetedCount),
+    ),
+  );
 
   const betExercises = pickBetExercises(betMin > SINGLE_BET_EXERCISE_MAX_MIN ? 2 : 1, history.previousBetExercises);
   for (const exercise of betExercises) {
@@ -135,6 +129,65 @@ export function planBetSession(
 }
 
 const WEAKNESS_WEIGHT = 2;
+
+export const LIGHT_SESSION_MIN = 10;
+const LIGHT_EXERCISES = 3;
+// A light session is mostly about weaknesses.
+const LIGHT_WEAKNESS_WEIGHT = 3;
+
+export type LightHistory = {
+  /** Light sessions already started, to rotate their targeted domains. */
+  lightSessionCount: number;
+  classification: BetHistory["classification"];
+};
+
+/** A short session for days without BET: a few targeted exercises, no BET block, no fatigue checks. */
+export function planLightSession(history: LightHistory, timeScale = 1): BetSessionPlan {
+  const steps = targetedSteps(
+    history.classification,
+    LIGHT_WEAKNESS_WEIGHT,
+    history.lightSessionCount * LIGHT_EXERCISES,
+    LIGHT_EXERCISES,
+    Math.round(((LIGHT_SESSION_MIN * 60_000) / LIGHT_EXERCISES) * timeScale),
+  ).map((step, position) => ({ position, ...step }));
+  return {
+    steps,
+    explanation: {
+      rankingAvailable: Object.keys(history.classification).length > 0,
+      weaknesses: DOMAIN_ORDER.filter((domain) => history.classification[domain] === "weakness"),
+      targetedDomains: steps.map((s) => s.domain!),
+      betExercises: [],
+      replacedBetExercises: [],
+    },
+  };
+}
+
+/**
+ * Targeted exercises for consecutive turns of the weighted domain cycle: turns continue
+ * from one session to the next, so each domain's share holds over time.
+ */
+function targetedSteps(
+  classification: BetHistory["classification"],
+  weaknessWeight: number,
+  firstTurn: number,
+  count: number,
+  durationMs: number,
+): Omit<PlannedStep, "position">[] {
+  const cycle = targetedCycle(classification, weaknessWeight);
+  return Array.from({ length: count }, (_, slot) => {
+    const turn = firstTurn + slot;
+    const domain = cycle[turn % cycle.length];
+    const choices = DOMAIN_EXERCISES[domain];
+    const exercise = choices[occurrencesBefore(cycle, domain, turn) % choices.length];
+    return {
+      block: "targeted" as const,
+      exercise,
+      domain,
+      config: withoutPractice(exerciseConfigFor(exercise, durationMs, TARGETED_TARGET)),
+      difficultyKey: EXERCISES[exercise].difficulty ? exercise : null,
+    };
+  });
+}
 
 /**
  * One cycle of targeted domains where each domain appears as often as its weight

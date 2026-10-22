@@ -77,3 +77,50 @@ test("an assessed user runs a BET session and sees its summary", async ({ page }
   await expect(page.getByRole("definition").filter({ hasText: "210" })).toBeVisible();
   await expect(page.getByRole("definition").filter({ hasText: "3 → 6" })).toBeVisible();
 });
+
+test("preferences change the week's plan shown on the home page", async ({ page }) => {
+  const email = await signUp(page);
+  await giveCompletedAssessment(email);
+  await page.goto("/preferences");
+  await page.getByRole("group", { name: "Séances BET par semaine" }).getByText("3", { exact: true }).click();
+  await page.getByRole("group", { name: "Objectif hebdomadaire" }).getByText("5", { exact: true }).click();
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText("Préférences enregistrées.")).toBeVisible();
+
+  await page.goto("/");
+  await expect(page.getByText(/sur 3, 0 séance légère, objectif 5 séances/)).toBeVisible();
+});
+
+test("a light session at rest runs short targeted exercises and ends on its summary", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "mobile", "One full session run is enough.");
+  test.setTimeout(120_000);
+
+  const email = await signUp(page);
+  await giveCompletedAssessment(email);
+  await page.goto("/seance/legere");
+  await expect(page.getByRole("heading", { name: "Séance légère" })).toBeVisible();
+  await page.getByRole("radio", { name: "Au repos" }).check({ force: true });
+  await expect(page.getByText(/la séance devient de l'entraînement cognitif/)).toBeVisible();
+  await rate(page, "Ta fatigue mentale en ce moment", 2);
+  await page.getByRole("button", { name: "Commencer la séance" }).click();
+
+  const ratings = page.getByRole("heading", { name: "Comment s'est passée la séance ?" });
+  const deadline = Date.now() + 90_000;
+  while (!(await ratings.isVisible().catch(() => false)) && Date.now() < deadline) {
+    for (const name of ADVANCE_BUTTONS) {
+      const button = page.getByRole("button", { name, exact: true });
+      if (await button.isVisible().catch(() => false)) await button.click();
+    }
+    await page.keyboard.press("Space");
+    await page.waitForTimeout(150);
+  }
+  await rate(page, "Ta fatigue mentale maintenant", 3);
+  await rate(page, "L'effort que la séance t'a demandé", 4);
+  await rate(page, "Ta motivation pendant la séance", 7);
+  await page.getByRole("button", { name: "Voir le résumé" }).click();
+
+  await expect(page.getByRole("heading", { name: "Résumé de la séance légère" })).toBeVisible();
+  // 4 effort x 10 minutes.
+  await expect(page.getByRole("definition").filter({ hasText: "40" }).first()).toBeVisible();
+});
+

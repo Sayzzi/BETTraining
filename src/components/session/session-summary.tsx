@@ -18,7 +18,9 @@ export async function SessionSummaryView({ summary }: { summary: BetSessionSumma
   return (
     <>
       <header>
-        <h1 className="type-wide text-4xl font-extrabold">{t("title")}</h1>
+        <h1 className="type-wide text-4xl font-extrabold">
+          {summary.kind === "light" ? t("lightTitle") : summary.context === "rest" ? t("cognitiveTitle") : t("title")}
+        </h1>
         <p className="mt-2 text-schiste">
           {t("meta", {
             date: format.dateTime(summary.startedAt, { dateStyle: "long", timeStyle: "short" }),
@@ -32,22 +34,24 @@ export async function SessionSummaryView({ summary }: { summary: BetSessionSumma
         <p className="mt-6 max-w-[60ch] font-semibold text-alerte">{t("incomplete")}</p>
       ) : null}
 
-      <div className="mt-8 rounded-lg bg-ardoise px-6 py-8 text-brume md:px-10">
-        <p className="text-trait">{t("fatigueCheckLabel")}</p>
-        {check ? (
-          <>
-            <p className="type-wide mt-2 flex items-baseline gap-3 leading-none font-extrabold text-chrono">
-              <span className="text-[clamp(3.5rem,12vw,7rem)] tabular-nums">{signed(check.meanRtChangeMs)}</span>
-              <span className="text-2xl md:text-3xl">ms</span>
-            </p>
-            <p className="mt-4 max-w-[60ch] text-trait">
-              {t("fatigueCheckBody", { lapses: signed(check.lapsesChange) })}
-            </p>
-          </>
-        ) : (
-          <p className="mt-3 max-w-[60ch] text-trait">{t("fatigueCheckMissing")}</p>
-        )}
-      </div>
+      {summary.kind === "bet" ? (
+        <div className="mt-8 rounded-lg bg-ardoise px-6 py-8 text-brume md:px-10">
+          <p className="text-trait">{t("fatigueCheckLabel")}</p>
+          {check ? (
+            <>
+              <p className="type-wide mt-2 flex items-baseline gap-3 leading-none font-extrabold text-chrono">
+                <span className="text-[clamp(3.5rem,12vw,7rem)] tabular-nums">{signed(check.meanRtChangeMs)}</span>
+                <span className="text-2xl md:text-3xl">ms</span>
+              </p>
+              <p className="mt-4 max-w-[60ch] text-trait">
+                {t("fatigueCheckBody", { lapses: signed(check.lapsesChange) })}
+              </p>
+            </>
+          ) : (
+            <p className="mt-3 max-w-[60ch] text-trait">{t("fatigueCheckMissing")}</p>
+          )}
+        </div>
+      ) : null}
 
       <dl className="mt-10 grid grid-cols-2 gap-x-8 md:grid-cols-4">
         {[
