@@ -25,3 +25,12 @@ Single-context: one `GLOSSARY.md` and one `docs/adr/` folder at the repo root. S
   - `hotfix/`: urgent fix branched from `main`, merged into both `main` and `dev`
 - Commit messages follow Conventional Commits: `feat: ...`, `fix: ...`, `docs: ...`, `refactor: ...`, `chore: ...`.
 - Never commit directly to `main` or `dev`.
+
+## Design
+
+- For every design task (new UI, page, component, or reshaping an existing one), invoke the project's `frontend-design` skill (`.claude/skills/frontend-design/SKILL.md`) before writing any UI code, and follow it.
+- Use this project skill rather than any other design skill (plugin `frontend-design:frontend-design`, `ui-ux-pro-max`, etc.).
+
+## React / Next.js
+
+- Whenever writing, reviewing or refactoring React or Next.js code, invoke the `vercel-react-best-practices` skill (`.agents/skills/vercel-react-best-practices/`, symlinked into `.claude/skills/`) and follow it.
