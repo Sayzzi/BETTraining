@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "reverse-engineer-anything": {
+      "source": "morluto/rea",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/reverse-engineer-anything/SKILL.md",
+      "computedHash": "9ba05f5f6d48b1709099076ada0f87fe6784333c5b4db973ccb721fa0c98d3e0"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "3219a1944e404ffc14d1d9d6aef6dd2e3855b81387ee0a044ccbfe14d34c2357"
+    }
+  }
+}
