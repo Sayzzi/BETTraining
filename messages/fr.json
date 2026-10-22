@@ -48,7 +48,8 @@
     "lastAssessment": "Ton dernier bilan date du {date}. Ta résistance à la fatigue était de {resistance}.",
     "seeAssessment": "Voir mon bilan",
     "retakeAssessment": "Refaire un bilan",
-    "startSession": "Lancer ma séance BET"
+    "startSession": "Lancer ma séance BET",
+    "nextSessionTitle": "Ta prochaine séance de 30 min"
   },
   "nav": {
     "freePractice": "Entraînement libre",
@@ -346,7 +347,8 @@
     "sending": "Enregistrement…",
     "errorTitle": "La séance n'a pas pu être enregistrée",
     "errorBody": "Vérifie ta connexion. Les réponses déjà envoyées sont conservées.",
-    "backToSetup": "Revenir à la séance"
+    "backToSetup": "Revenir à la séance",
+    "planTitle": "Ce que prévoit l'algorithme"
   },
   "sessionSummary": {
     "title": "Résumé de la séance",
@@ -374,6 +376,32 @@
       "after_sport": "après le sport",
       "before_sport": "avant le sport",
       "rest": "au repos"
+    },
+    "whyTitle": "Pourquoi cette séance"
+  },
+  "names": {
+    "exercises": {
+      "pvt": "le PVT",
+      "pvt_b": "le PVT-B",
+      "nback": "le n-back",
+      "stroop": "le Stroop",
+      "flanker": "le flanker",
+      "choice_rt": "le temps de réaction à choix",
+      "symbol_digit": "les symboles-chiffres"
+    },
+    "domains": {
+      "sustained_attention": "attention soutenue",
+      "working_memory": "mémoire de travail",
+      "inhibition": "inhibition",
+      "processing_speed": "vitesse de traitement"
     }
+  },
+  "planExplanation": {
+    "noRanking": "Pas encore de points forts ni de points faibles : ils apparaîtront à ton deuxième bilan. D'ici là, le bloc ciblé fait tourner les quatre capacités.",
+    "weaknesses": "{count, plural, one {Point faible à ton dernier bilan : {domains}. Il revient deux fois plus souvent dans le bloc ciblé.} other {Points faibles à ton dernier bilan : {domains}. Ils reviennent deux fois plus souvent dans le bloc ciblé.}}",
+    "noWeakness": "Aucun point faible à ton dernier bilan : le bloc ciblé fait tourner les quatre capacités.",
+    "targeted": "Bloc ciblé : {domains}, de l'entraînement cognitif, hors BET.",
+    "bet": "Bloc BET : {exercises}.",
+    "betRotation": "Bloc BET : {exercises}, pour changer de {replaced} de la dernière séance."
   }
 }

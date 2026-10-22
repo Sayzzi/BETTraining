@@ -5,8 +5,9 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { detectDevice, detectInputMode } from "@/components/player/device";
 import { PRIMARY_BUTTON, ProtocolRunner } from "@/components/protocol/protocol-runner";
-import { BET_DURATIONS_MIN, type BetDuration, type SessionBlock } from "@/engine/session-plan";
+import { BET_DURATIONS_MIN, type BetDuration, type PlanExplanation, type SessionBlock } from "@/engine/session-plan";
 import type { SessionStepRun, StartedBetSession } from "@/server/bet-session";
+import { PlanExplanationText } from "./plan-explanation";
 import { RatingScale } from "./rating-scale";
 
 type Context = "rest" | "before_sport" | "after_sport";
@@ -25,7 +26,7 @@ const CHOICE =
   "cursor-pointer rounded-md border border-trait px-4 py-2.5 font-semibold has-checked:border-ardoise has-checked:bg-ardoise has-checked:text-brume has-focus-visible:outline-3 has-focus-visible:outline-chrono";
 
 /** Opening choices and rating, the planned steps, the closing ratings, then the summary. */
-export function SessionRunner() {
+export function SessionRunner({ previews }: { previews: Record<BetDuration, PlanExplanation> }) {
   const t = useTranslations("session");
   const router = useRouter();
   const [state, setState] = useState<State>({ kind: "setup", interrupted: false });
@@ -104,6 +105,13 @@ export function SessionRunner() {
             ))}
           </div>
         </fieldset>
+
+        <div className="mt-6 border-l-2 border-chrono pl-5">
+          <h2 className="font-semibold">{t("planTitle")}</h2>
+          <div className="mt-1 text-schiste">
+            <PlanExplanationText explanation={previews[durationMin]} />
+          </div>
+        </div>
 
         <fieldset className="mt-8">
           <legend className="font-semibold">{t("contextLabel")}</legend>

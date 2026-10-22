@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
 import type { BetSessionSummary } from "@/server/bet-session";
+import { PlanExplanationText } from "./plan-explanation";
 
 export async function SessionSummaryView({ summary }: { summary: BetSessionSummary }) {
   const [t, tTests, format] = await Promise.all([
@@ -65,6 +66,15 @@ export async function SessionSummaryView({ summary }: { summary: BetSessionSumma
         ))}
       </dl>
       <p className="mt-2 text-sm text-schiste">{t("loadExplanation")}</p>
+
+      {summary.explanation ? (
+        <section className="mt-12 max-w-[60ch]">
+          <h2 className="type-wide text-2xl font-bold">{t("whyTitle")}</h2>
+          <div className="mt-3 text-lg">
+            <PlanExplanationText explanation={summary.explanation} />
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-12">
         <h2 className="type-wide text-2xl font-bold">{t("exercisesTitle")}</h2>
