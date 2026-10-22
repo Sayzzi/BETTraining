@@ -28,8 +28,8 @@ export default defineConfig({
       DATABASE_URL: TEST_DATABASE_URL,
       BETTER_AUTH_SECRET: "e2e-test-secret-e2e-test-secret-e2e-test-secret",
       BETTER_AUTH_URL: `http://localhost:${PORT}`,
-      // The whole assessment protocol shrinks to about two minutes.
-      ASSESSMENT_TIME_SCALE: "0.02",
+      // Assessments and BET sessions shrink to a couple of minutes.
+      TEST_TIME_SCALE: "0.02",
     },
   },
 });

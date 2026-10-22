@@ -48,11 +48,12 @@
     "lastAssessment": "Ton dernier bilan date du {date}. Ta résistance à la fatigue était de {resistance}.",
     "seeAssessment": "Voir mon bilan",
     "retakeAssessment": "Refaire un bilan",
-    "dailySessionSoon": "La séance du jour, générée à partir de ton bilan, arrive dans une prochaine version."
+    "startSession": "Lancer ma séance BET"
   },
   "nav": {
     "freePractice": "Entraînement libre",
-    "assessment": "Bilan"
+    "assessment": "Bilan",
+    "session": "Séance BET"
   },
   "freePractice": {
     "title": "Entraînement libre",
@@ -270,5 +271,97 @@
     },
     "detailTitle": "Détail des tests",
     "home": "Retour à l'accueil"
+  },
+  "session": {
+    "title": "Séance BET",
+    "loading": "Chargement…",
+    "intro": "La séance enchaîne quatre blocs, générés à partir de ton historique :",
+    "blocks": {
+      "fatigue_open": {
+        "title": "Mesure de fatigue",
+        "summary": "une mesure de fatigue de 3 minutes (PVT-B),",
+        "briefing": "3 minutes de vigilance pour mesurer ta fatigue de départ. Réagis le plus vite possible au compteur."
+      },
+      "targeted": {
+        "title": "Bloc ciblé",
+        "summary": "un bloc ciblé : quelques exercices courts, à froid,",
+        "briefing": "Quelques exercices courts, faits à froid, pour entraîner tes capacités cognitives. Ce bloc ne relève pas du BET : il fait progresser tes capacités une par une."
+      },
+      "bet": {
+        "title": "Bloc BET",
+        "summary": "le bloc BET : un ou deux exercices longs et exigeants, environ deux tiers de la séance,",
+        "briefing": "Le cœur de la séance : un ou deux exercices longs, réglés pour que tu réussisses environ 95 % des essais sous pression de temps. Le but est de fatiguer ton cerveau : reste concentré jusqu'au bout."
+      },
+      "fatigue_close": {
+        "title": "Mesure de fatigue finale",
+        "summary": "une mesure de fatigue finale, à comparer avec celle du début.",
+        "briefing": "La même mesure qu'au début. L'écart montre ce que la séance t'a coûté."
+      }
+    },
+    "durationLabel": "Durée de la séance",
+    "minutes": "{minutes} min",
+    "contextLabel": "Contexte",
+    "contexts": {
+      "after_sport": "Après le sport",
+      "before_sport": "Avant le sport",
+      "rest": "Au repos"
+    },
+    "contextHints": {
+      "after_sport": "Le moment recommandé : juste après une séance de sport, quand la fatigue est déjà là.",
+      "before_sport": "Évite de placer la séance avant une séance de sport importante : elle peut la dégrader.",
+      "rest": "Sans activité physique, la séance entraîne tes capacités cognitives, mais les études ne montrent pas d'effet sur l'endurance."
+    },
+    "preFatigueLabel": "Ta fatigue mentale en ce moment",
+    "fatigueLow": "0 : aucune",
+    "fatigueHigh": "10 : épuisé",
+    "ratingRequired": "Note ta fatigue mentale pour commencer.",
+    "start": "Commencer la séance",
+    "starting": "Préparation…",
+    "blockOf": "Bloc {block} sur 4",
+    "continue": "Continuer",
+    "stepLabel": "Séance BET, {block}, exercice {index} sur {total}",
+    "interrupted": "Ta séance a été interrompue et marquée incomplète. Tes réponses déjà faites sont conservées.",
+    "ratingsTitle": "Comment s'est passée la séance ?",
+    "ratingsIntro": "Trois notes rapides : elles servent à suivre ta fatigue et à repérer un surmenage.",
+    "postFatigueLabel": "Ta fatigue mentale maintenant",
+    "effortLabel": "L'effort que la séance t'a demandé",
+    "effortLow": "0 : aucun",
+    "effortHigh": "10 : maximal",
+    "motivationLabel": "Ta motivation pendant la séance",
+    "motivationLow": "0 : aucune, ennui",
+    "motivationHigh": "10 : très motivé",
+    "seeSummary": "Voir le résumé",
+    "sending": "Enregistrement…",
+    "errorTitle": "La séance n'a pas pu être enregistrée",
+    "errorBody": "Vérifie ta connexion. Les réponses déjà envoyées sont conservées.",
+    "backToSetup": "Revenir à la séance"
+  },
+  "sessionSummary": {
+    "title": "Résumé de la séance",
+    "loading": "Chargement du résumé…",
+    "meta": "{date}, {duration} min, {context}",
+    "incomplete": "Cette séance a été interrompue avant la fin. Les exercices faits sont conservés.",
+    "fatigueCheckLabel": "Écart entre les deux mesures de fatigue",
+    "fatigueCheckBody": "Variation de ton temps de réaction moyen entre le début et la fin de la séance, et {lapses} lapses. Un temps qui augmente montre la fatigue que la séance a provoquée.",
+    "fatigueCheckMissing": "Pas d'écart calculable : il manque une réponse valide dans l'une des deux mesures de fatigue.",
+    "load": "Charge réalisée",
+    "effort": "Effort perçu",
+    "fatigue": "Fatigue mentale",
+    "motivation": "Motivation",
+    "loadExplanation": "Charge réalisée : effort perçu multiplié par la durée de la séance en minutes. Elle sert à repérer un surmenage au fil des semaines.",
+    "exercisesTitle": "Exercices",
+    "runLine": "{rt}, {accuracy}",
+    "runNotDone": "Non terminé",
+    "exercises": {
+      "pvt": "Vigilance (PVT)",
+      "flanker": "Flanker",
+      "choice_rt": "Temps de réaction à choix"
+    },
+    "home": "Retour à l'accueil",
+    "contextsInline": {
+      "after_sport": "après le sport",
+      "before_sport": "avant le sport",
+      "rest": "au repos"
+    }
   }
 }

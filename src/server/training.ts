@@ -8,6 +8,7 @@ import { assessment, difficultyState, exerciseRun, trainingSession, trial } from
 import {
   computeExerciseResults,
   describeDifficulty,
+  describeRunDifficulty,
   EXERCISES,
   exerciseConfig,
   finalLevel,
@@ -131,7 +132,7 @@ export async function completeRun(
   const start = run.difficultyStart as DifficultySnapshot | null;
   const endLevel = finalLevel(config, start?.level ?? null, trials);
   const exercise = run.exercise as ExerciseId;
-  const difficultyEnd = endLevel === null ? null : describeDifficulty(exercise, endLevel);
+  const difficultyEnd = endLevel === null ? null : describeRunDifficulty(exercise, config, endLevel);
   const endedAt = new Date();
   await db.transaction(async (tx) => {
     await tx
@@ -141,7 +142,7 @@ export async function completeRun(
     if (endLevel !== null) {
       await tx
         .insert(difficultyState)
-        .values({ userId, exercise, level: endLevel })
+        .values({ userId, exercise: run.difficultyKey ?? exercise, level: endLevel })
         .onConflictDoUpdate({
           target: [difficultyState.userId, difficultyState.exercise],
           set: { level: endLevel, updatedAt: endedAt },
@@ -240,16 +241,30 @@ async function findOwnedRun(db: Database | Transaction, userId: string, runId: s
   return row.run;
 }
 
-/** The user's saved level for an exercise, its initial level, or null without difficulty. */
-export async function currentLevel(db: Database | Transaction, userId: string, exercise: ExerciseId) {
+/**
+ * The user's saved level for an exercise, or null without difficulty. A separate key (such as
+ * "stroop:bet") without a saved level yet starts a little below the exercise's own level.
+ */
+export async function currentLevel(
+  db: Database | Transaction,
+  userId: string,
+  exercise: ExerciseId,
+  key: string = exercise,
+): Promise<number | null> {
   const difficulty = EXERCISES[exercise].difficulty;
   if (!difficulty) return null;
   const [saved] = await db
     .select({ level: difficultyState.level })
     .from(difficultyState)
-    .where(and(eq(difficultyState.userId, userId), eq(difficultyState.exercise, exercise)));
-  return saved?.level ?? difficulty.initial;
+    .where(and(eq(difficultyState.userId, userId), eq(difficultyState.exercise, key)));
+  if (saved) return saved.level;
+  if (key === exercise) return difficulty.initial;
+  const base = (await currentLevel(db, userId, exercise)) ?? difficulty.initial;
+  return Math.max(difficulty.min, base - SEPARATE_KEY_HEADSTART);
 }
+
+// A stricter target (95 % in the BET block) holds at a lower level than the exercise's 80 % level.
+const SEPARATE_KEY_HEADSTART = 2;
 
 export async function abandonOpenSessions(tx: Transaction, userId: string) {
   const endedAt = new Date();
