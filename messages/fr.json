@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "title": "BETTraining",
+    "description": "Entraînement d'endurance cérébrale, personnalisé à ton niveau."
+  },
+  "brand": "BETTraining",
+  "chrono": {
+    "unit": "ms",
+    "caption": "Ton temps de réaction, mesuré à chaque essai. BETTraining s'en sert pour régler chaque séance sur ton niveau et ta fatigue du jour."
+  },
+  "signIn": {
+    "title": "Se connecter",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "pending": "Connexion…",
+    "noAccount": "Pas encore de compte ?",
+    "toSignUp": "Créer un compte"
+  },
+  "signUp": {
+    "title": "Créer un compte",
+    "name": "Prénom",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "passwordHint": "Au moins {min} caractères.",
+    "submit": "Créer mon compte",
+    "pending": "Création du compte…",
+    "hasAccount": "Déjà un compte ?",
+    "toSignIn": "Se connecter"
+  },
+  "authErrors": {
+    "INVALID_EMAIL_OR_PASSWORD": "E-mail ou mot de passe incorrect.",
+    "USER_ALREADY_EXISTS": "Un compte existe déjà avec cet e-mail. Connecte-toi à la place.",
+    "PASSWORD_TOO_SHORT": "Le mot de passe doit contenir au moins {min} caractères.",
+    "INVALID_EMAIL": "Cet e-mail n'est pas valide.",
+    "unknown": "La demande n'a pas abouti. Vérifie ta connexion et réessaie."
+  },
+  "home": {
+    "greeting": "Bonjour, {name}.",
+    "intro": "Ton entraînement commencera par un bilan : il mesure tes quatre capacités cognitives à froid, puis en état de fatigue. Le bilan sera disponible dans une prochaine version.",
+    "loading": "Chargement de ton espace…",
+    "signOut": "Se déconnecter",
+    "signingOut": "Déconnexion…"
+  }
+}

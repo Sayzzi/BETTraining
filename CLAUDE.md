@@ -34,3 +34,8 @@ Single-context: one `GLOSSARY.md` and one `docs/adr/` folder at the repo root. S
 ## React / Next.js
 
 - Whenever writing, reviewing or refactoring React or Next.js code, invoke the `vercel-react-best-practices` skill (`.agents/skills/vercel-react-best-practices/`, symlinked into `.claude/skills/`) and follow it.
+
+## Next.js 16
+
+- This project uses Next.js 16 with Cache Components, which differs from older versions: read `AGENTS.md` and the bundled guides in `node_modules/next/dist/docs/` before writing Next.js code.
+- Session reads (`cookies()`, `headers()`) must render behind a `<Suspense>` boundary; route protection lives in `src/proxy.ts` (formerly middleware).
