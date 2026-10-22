@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EXERCISES, exerciseConfig, finalLevel } from "./exercises";
+import { EXERCISES, exerciseConfig, finalLevel, FREE_PRACTICE_EXERCISES } from "./exercises";
 import { frame, respond, startNBack, type NBackConfig } from "./nback";
 
 describe("exercise catalogue", () => {
@@ -27,6 +27,21 @@ describe("exercise catalogue", () => {
       expect(EXERCISES[id].difficulty!.levers).toEqual(["incongruentRate", "responseWindow", "interTrialInterval"]);
     }
     expect(EXERCISES.flanker.domains).toContain("sustained_attention");
+  });
+
+  it("declares choice reaction time and symbols-digits as adaptive speed drills kept out of the BET block", () => {
+    for (const id of ["choice_rt", "symbol_digit"] as const) {
+      expect(EXERCISES[id]).toMatchObject({
+        domains: ["processing_speed"],
+        betEligible: false,
+        difficulty: { levers: ["responseWindow", "interTrialInterval"] },
+      });
+    }
+  });
+
+  it("covers all four cognitive domains with free-practice exercises", () => {
+    const domains = new Set(FREE_PRACTICE_EXERCISES.flatMap((id) => EXERCISES[id].domains));
+    expect(domains).toEqual(new Set(["sustained_attention", "working_memory", "processing_speed", "inhibition"]));
   });
 
   it("keeps the PVT-B fatigue check out of the BET block", () => {

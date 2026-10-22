@@ -13,7 +13,7 @@ export default async function FreePracticePage() {
           <li key={exercise}>
             <Link
               href={`/entrainement/${exercise}`}
-              className="group flex flex-col gap-1 py-6 md:grid md:grid-cols-[12rem_1fr] md:items-baseline md:gap-8"
+              className="group flex flex-col gap-1 py-6 md:grid md:grid-cols-[18rem_1fr] md:items-baseline md:gap-8"
             >
               <span className="type-wide text-2xl font-bold group-hover:underline group-hover:underline-offset-4">
                 {t(`${exercise}Name`)}
@@ -23,7 +23,6 @@ export default async function FreePracticePage() {
           </li>
         ))}
       </ul>
-      <p className="mt-6 text-sm text-schiste">{t("moreSoon")}</p>
     </>
   );
 }

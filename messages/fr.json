@@ -52,13 +52,16 @@
     "intro": "Choisis un exercice et sa durée. Ces séances sont enregistrées dans ton historique, sans remplacer la séance du jour.",
     "pvtName": "Vigilance (PVT)",
     "pvtDescription": "Attention soutenue : réagir le plus vite possible à un signal imprévisible.",
-    "moreSoon": "D'autres exercices arrivent : temps de réaction à choix et symboles-chiffres.",
     "nbackName": "N-back",
     "nbackDescription": "Mémoire de travail : comparer chaque lettre à celle d'il y a N positions. La difficulté s'adapte à ton niveau.",
     "stroopName": "Stroop",
     "stroopDescription": "Inhibition : nommer la couleur de l'encre sans se laisser piéger par le mot écrit.",
     "flankerName": "Flanker",
-    "flankerDescription": "Inhibition et attention : suivre la flèche du milieu en ignorant celles qui l'entourent."
+    "flankerDescription": "Inhibition et attention : suivre la flèche du milieu en ignorant celles qui l'entourent.",
+    "choice_rtName": "Temps de réaction à choix",
+    "choice_rtDescription": "Vitesse de traitement : répondre le plus vite possible à la zone qui s'allume.",
+    "symbol_digitName": "Symboles-chiffres",
+    "symbol_digitDescription": "Vitesse de traitement : retrouver le chiffre de chaque symbole grâce à la légende."
   },
   "pvt": {
     "title": "Vigilance (PVT)",
@@ -88,7 +91,9 @@
       "pvt": "Résultats du PVT",
       "nback": "Résultats du n-back",
       "stroop": "Résultats du Stroop",
-      "flanker": "Résultats du flanker"
+      "flanker": "Résultats du flanker",
+      "choice_rt": "Résultats du temps de réaction à choix",
+      "symbol_digit": "Résultats des symboles-chiffres"
     },
     "errors": "Erreurs",
     "misses": "Sans réponse",
@@ -99,7 +104,8 @@
     "meanRtChoice": "Temps de réaction moyen des bonnes réponses.",
     "minuteIntroChoice": "Ton temps de réaction moyen à chaque minute. Une barre qui s'allonge montre le moment où ta concentration baisse.",
     "congruencyEffect": "Effet d'interférence : {value} ms. C'est l'écart entre ton temps de réaction sur les essais en conflit et sur les autres : plus il est faible, mieux tu résistes à la distraction.",
-    "difficultyChoice": "niveau {level} ({incongruent} d'essais en conflit, {seconds} s pour répondre)"
+    "difficultyChoice": "niveau {level} ({incongruent} d'essais en conflit, {seconds} s pour répondre)",
+    "difficultySpeed": "niveau {level} ({seconds} s pour répondre)"
   },
   "player": {
     "durationLabel": "Durée de l'exercice",
@@ -172,5 +178,20 @@
     "right": "Droite",
     "leftKey": "F ou ←",
     "rightKey": "J ou →"
+  },
+  "choiceRt": {
+    "title": "Temps de réaction à choix",
+    "domain": "Vitesse de traitement",
+    "instructions": "Quatre zones sont affichées. L'une d'elles s'allume : réponds le plus vite possible avec la touche ou le bouton qui lui correspond.",
+    "keys": "Au clavier : D, F, J et K, de gauche à droite. Sur mobile, touche le bouton sous la zone allumée.",
+    "adaptive": "La difficulté s'ajuste à tes réponses : moins de temps pour répondre et moins d'attente entre deux signaux quand tu réussis. L'exercice reprendra à ton niveau la prochaine fois.",
+    "zone": "Zone {number}"
+  },
+  "symbolDigit": {
+    "title": "Symboles-chiffres",
+    "domain": "Vitesse de traitement",
+    "instructions": "Une légende associe neuf symboles aux chiffres de 1 à 9. Un symbole apparaît : donne son chiffre le plus vite possible. La légende change à chaque séance.",
+    "keys": "Au clavier : les touches 1 à 9. Sur mobile, touche le chiffre en bas de l'écran.",
+    "adaptive": "La difficulté s'ajuste à tes réponses : moins de temps pour répondre et moins d'attente entre deux symboles quand tu réussis. L'exercice reprendra à ton niveau la prochaine fois."
   }
 }
