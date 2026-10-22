@@ -15,6 +15,13 @@
       "when": 1792685463440,
       "tag": "0001_training",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792686258714,
+      "tag": "0002_difficulty",
+      "breakpoints": true
     }
   ]
 }

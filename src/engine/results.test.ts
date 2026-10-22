@@ -14,6 +14,7 @@ function trial(outcome: TrialOutcome, onsetMs: number | null, rtMs: number | nul
     correct: outcome === "hit" || outcome === "lapse",
     stimulus: null,
     response: null,
+    difficulty: null,
   };
 }
 
@@ -81,6 +82,16 @@ describe("computeRtResults", () => {
     ]);
   });
 
+  it("counts wrong choices as errors and keeps misses out of lapses when there is no threshold", () => {
+    const results = computeRtResults(
+      [trial("hit", 0, 600), trial("error", 3_000, 700), trial("miss", 6_000, null)],
+      { lapseThresholdMs: null },
+    );
+    expect(results).toMatchObject({ errors: 1, misses: 1, lapses: 0, correctCount: 1, meanRtMs: 600 });
+    expect(results.accuracy).toBeCloseTo(1 / 3);
+    expect(results.minutes[0].lapses).toBe(0);
+  });
+
   it("returns empty statistics for a run without counted trials", () => {
     expect(computeRtResults([], { lapseThresholdMs: 500 })).toEqual({
       trialCount: 0,
@@ -89,6 +100,7 @@ describe("computeRtResults", () => {
       meanRtMs: null,
       rtCv: null,
       lapses: 0,
+      errors: 0,
       misses: 0,
       falseStarts: 0,
       rateCorrectPerSecond: null,

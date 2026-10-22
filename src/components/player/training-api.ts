@@ -1,8 +1,9 @@
+import type { FreePracticeExercise } from "@/engine/exercises";
 import type { StartedRun } from "@/server/training";
 import type { Trial, Pause } from "@/engine/trial";
 
 export async function startFreePracticeRequest(body: {
-  exercise: "pvt";
+  exercise: FreePracticeExercise;
   durationMin: number;
   device: string;
   inputMode: string;

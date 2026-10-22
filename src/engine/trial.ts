@@ -2,9 +2,10 @@
 
 export type InputMode = "keyboard" | "touch" | "mouse";
 
-export type TrialOutcome = "hit" | "lapse" | "miss" | "false_start";
+/** hit: correct response; error: wrong choice; lapse: correct but too slow (PVT); miss: no response. */
+export type TrialOutcome = "hit" | "error" | "lapse" | "miss" | "false_start";
 
-export type TrialResponse = { input: InputMode };
+export type TrialResponse = { input: InputMode; choice?: string };
 
 export type Trial = {
   /** Position in the exercise run, practice trials included. */
@@ -18,6 +19,8 @@ export type Trial = {
   correct: boolean;
   stimulus: Record<string, unknown> | null;
   response: TrialResponse | null;
+  /** Difficulty parameters in force for this trial, or null for exercises without difficulty. */
+  difficulty: Record<string, unknown> | null;
 };
 
 export type Pause = { atMs: number; durationMs: number };
