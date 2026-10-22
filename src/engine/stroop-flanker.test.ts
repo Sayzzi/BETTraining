@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { FLANKER_SPEC, flankerDisplay, type FlankerStimulus } from "./flanker";
+import { FLANKER_SPEC, flankerDisplay, makeFlankerStimulus, type FlankerStimulus } from "./flanker";
 import type { RngState } from "./random";
-import { STROOP_COLORS, STROOP_SPEC, type StroopStimulus } from "./stroop";
+import { makeStroopStimulus, STROOP_COLORS, STROOP_SPEC, type StroopStimulus } from "./stroop";
 
 function draw<S>(make: (rng: RngState, incongruent: boolean) => [S, RngState], seed: number, count: number, incongruent: boolean) {
   const stimuli: S[] = [];
@@ -20,23 +20,23 @@ describe("Stroop", () => {
   });
 
   it("prints congruent words in their own colour and incongruent ones in another", () => {
-    for (const s of draw<StroopStimulus>(STROOP_SPEC.makeStimulus, 4, 200, false)) {
+    for (const s of draw<StroopStimulus>(makeStroopStimulus, 4, 200, false)) {
       expect(s).toMatchObject({ congruent: true, word: s.ink });
     }
-    for (const s of draw<StroopStimulus>(STROOP_SPEC.makeStimulus, 4, 200, true)) {
+    for (const s of draw<StroopStimulus>(makeStroopStimulus, 4, 200, true)) {
       expect(s.congruent).toBe(false);
       expect(s.word).not.toBe(s.ink);
     }
   });
 
   it("uses every colour as ink and as word", () => {
-    const stimuli = draw<StroopStimulus>(STROOP_SPEC.makeStimulus, 8, 400, true);
+    const stimuli = draw<StroopStimulus>(makeStroopStimulus, 8, 400, true);
     expect(new Set(stimuli.map((s) => s.ink))).toEqual(new Set(STROOP_COLORS));
     expect(new Set(stimuli.map((s) => s.word))).toEqual(new Set(STROOP_COLORS));
   });
 
   it("replays the same stimuli for the same seed", () => {
-    expect(draw(STROOP_SPEC.makeStimulus, 21, 30, true)).toEqual(draw(STROOP_SPEC.makeStimulus, 21, 30, true));
+    expect(draw(makeStroopStimulus, 21, 30, true)).toEqual(draw(makeStroopStimulus, 21, 30, true));
   });
 
   it("gets harder with the level: more conflict, less time", () => {
@@ -57,14 +57,14 @@ describe("Flanker", () => {
   });
 
   it("draws both directions and honours the congruency asked for", () => {
-    const congruent = draw<FlankerStimulus>(FLANKER_SPEC.makeStimulus, 5, 200, false);
+    const congruent = draw<FlankerStimulus>(makeFlankerStimulus, 5, 200, false);
     expect(new Set(congruent.map((s) => s.direction))).toEqual(new Set(["left", "right"]));
     expect(congruent.every((s) => s.congruent)).toBe(true);
-    expect(draw<FlankerStimulus>(FLANKER_SPEC.makeStimulus, 5, 50, true).every((s) => !s.congruent)).toBe(true);
+    expect(draw<FlankerStimulus>(makeFlankerStimulus, 5, 50, true).every((s) => !s.congruent)).toBe(true);
   });
 
   it("replays the same stimuli for the same seed", () => {
-    expect(draw(FLANKER_SPEC.makeStimulus, 13, 30, false)).toEqual(draw(FLANKER_SPEC.makeStimulus, 13, 30, false));
+    expect(draw(makeFlankerStimulus, 13, 30, false)).toEqual(draw(makeFlankerStimulus, 13, 30, false));
   });
 
   it("gets harder with the level: more conflict, less time", () => {

@@ -20,19 +20,26 @@ import { pointerInput } from "./device";
 import { ErrorPanel, ExerciseIntro, ExerciseStage, PausedPanel, PracticeDonePanel, SavingPanel } from "./exercise-ui";
 import { useExerciseRun, type ExerciseEngine } from "./use-exercise-run";
 
-type Stimulus = { congruent: boolean };
-
 export type ChoiceOption = { id: string; label: string; keyHint: string; keys: string[]; swatch?: string };
 
-/** Builds the engine adapter for a choice task; call once at module level so it stays stable. */
-export function choiceEngine<S extends Stimulus>(
+/**
+ * Builds the engine adapter for a choice task; call once at module level so it stays stable.
+ * Pass a function when the spec depends on the run's seed (such as a reshuffled key).
+ */
+export function choiceEngine<S>(
   exercise: FreePracticeExercise,
-  spec: ChoiceTaskSpec<S>,
+  spec: ChoiceTaskSpec<S> | ((seed: number) => ChoiceTaskSpec<S>),
 ): ExerciseEngine<ChoiceTaskRun<S>> {
   return {
     exercise,
     start: (started, at) =>
-      startChoiceTask(started.config as ChoiceTaskConfig, spec, started.seed, at, started.level ?? 1),
+      startChoiceTask(
+        started.config as ChoiceTaskConfig,
+        typeof spec === "function" ? spec(started.seed) : spec,
+        started.seed,
+        at,
+        started.level ?? 1,
+      ),
     frame,
     pause,
     resume,
@@ -42,17 +49,26 @@ export function choiceEngine<S extends Stimulus>(
   };
 }
 
-export function ChoicePlayer<S extends Stimulus>({
+export function ChoicePlayer<S>({
   engine,
   namespace,
   options,
+  optionsClassName = options.length > 2 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2",
   renderStimulus,
+  renderIdle,
+  renderLegend,
 }: {
   engine: ExerciseEngine<ChoiceTaskRun<S>>;
   /** Message namespace with title, domain, instructions, keys and adaptive. */
-  namespace: "stroop" | "flanker";
+  namespace: "stroop" | "flanker" | "choiceRt" | "symbolDigit";
   options: ChoiceOption[];
+  /** Grid classes for the answer buttons. */
+  optionsClassName?: string;
   renderStimulus: (stimulus: S) => ReactNode;
+  /** What stays on screen between stimuli (empty by default). */
+  renderIdle?: () => ReactNode;
+  /** Reference shown above the stimulus for the whole run, such as a symbol key. */
+  renderLegend?: (run: ChoiceTaskRun<S>) => ReactNode;
 }) {
   const t = useTranslations(namespace);
   const tChoice = useTranslations("choiceTask");
@@ -105,9 +121,10 @@ export function ChoicePlayer<S extends Stimulus>({
     );
   } else {
     body = (
-      <div className="flex flex-col items-center gap-6 text-center">
-        <div aria-live="off" className="flex min-h-[clamp(5rem,16vw,9rem)] items-center">
-          {run.current ? renderStimulus(run.current.stimulus) : null}
+      <div className="flex w-full flex-col items-center gap-6 text-center">
+        {renderLegend?.(run)}
+        <div aria-live="off" className="flex min-h-[clamp(5rem,16vw,9rem)] w-full items-center justify-center">
+          {run.current ? renderStimulus(run.current.stimulus) : renderIdle?.()}
         </div>
         <p className="min-h-6 text-trait">
           {lastPractice
@@ -132,7 +149,7 @@ export function ChoicePlayer<S extends Stimulus>({
       onTogglePause={togglePause}
       footer={
         active && !paused && stage === "running" ? (
-          <div className={`grid gap-3 px-5 pb-5 ${options.length > 2 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2"}`}>
+          <div className={`grid gap-3 px-5 pb-5 ${optionsClassName}`}>
             {options.map((option) => (
               <button
                 key={option.id}
@@ -143,7 +160,7 @@ export function ChoicePlayer<S extends Stimulus>({
                   event.preventDefault();
                   answer(option.id, pointerInput(event.pointerType), event.timeStamp);
                 }}
-                className="flex h-20 flex-col items-center justify-center rounded-md border-2 border-trait/40 text-lg font-semibold text-brume active:border-chrono"
+                className="flex h-16 flex-col items-center justify-center rounded-md border-2 border-trait/40 text-lg font-semibold text-brume active:border-chrono md:h-20"
               >
                 <span className="flex items-center gap-2">
                   {option.swatch ? (
@@ -151,7 +168,9 @@ export function ChoicePlayer<S extends Stimulus>({
                   ) : null}
                   {option.label}
                 </span>
-                <span className="mt-1 text-sm font-normal opacity-70">{option.keyHint}</span>
+                {option.keyHint ? (
+                  <span className="mt-1 text-sm font-normal opacity-70">{option.keyHint}</span>
+                ) : null}
               </button>
             ))}
           </div>

@@ -54,6 +54,12 @@ export async function RunResults({ run }: { run: RunDetails }) {
         seconds: format.number(snapshot.soaMs / 1000, { maximumFractionDigits: 1 }),
       });
     }
+    if (!("incongruentRate" in snapshot)) {
+      return t("difficultySpeed", {
+        level,
+        seconds: format.number(snapshot.responseWindowMs / 1000, { maximumFractionDigits: 1 }),
+      });
+    }
     return t("difficultyChoice", {
       level,
       incongruent: format.number(snapshot.incongruentRate, { style: "percent", maximumFractionDigits: 0 }),

@@ -8,19 +8,24 @@ import { staircaseFor, updateLevel, type Staircase } from "./difficulty";
 import { nextRandom, type RngState } from "./random";
 import type { InputMode, Pause, Trial } from "./trial";
 
+/** Speed levers every choice task has, plus task-specific ones (such as the incongruent share). */
 export type ChoiceParameters = {
-  /** Share of incongruent (conflicting) stimuli. */
-  incongruentRate: number;
   responseWindowMs: number;
   /** Blank interval between an answer and the next stimulus. */
   itiMs: number;
-};
+} & Record<string, number>;
 
-export type ChoiceTaskSpec<S extends { congruent: boolean }> = {
+export type ChoiceTaskSpec<S> = {
   parameters(level: number): ChoiceParameters;
-  makeStimulus(rng: RngState, incongruent: boolean): [S, RngState];
+  makeStimulus(rng: RngState, parameters: ChoiceParameters): [S, RngState];
   correctChoice(stimulus: S): string;
 };
+
+/** Draws whether the next stimulus is incongruent, for conflict tasks. */
+export function rollIncongruent(rng: RngState, parameters: ChoiceParameters): [boolean, RngState] {
+  const [roll, next] = nextRandom(rng);
+  return [roll < (parameters.incongruentRate ?? 0), next];
+}
 
 export type ChoiceTaskConfig = {
   durationMs: number;
@@ -32,7 +37,7 @@ export type ChoiceTaskConfig = {
 
 export type ChoicePhase = "practice" | "practice_done" | "main" | "done";
 
-export type ChoiceTaskRun<S extends { congruent: boolean }> = {
+export type ChoiceTaskRun<S> = {
   config: ChoiceTaskConfig;
   spec: ChoiceTaskSpec<S>;
   staircase: Staircase;
@@ -57,7 +62,7 @@ export function interpolate(level: number, minLevel: number, maxLevel: number, f
   return from + (to - from) * ratio;
 }
 
-export function startChoiceTask<S extends { congruent: boolean }>(
+export function startChoiceTask<S>(
   config: ChoiceTaskConfig,
   spec: ChoiceTaskSpec<S>,
   seed: number,
@@ -81,7 +86,7 @@ export function startChoiceTask<S extends { congruent: boolean }>(
   };
 }
 
-export function frame<S extends { congruent: boolean }>(run: ChoiceTaskRun<S>, at: number): ChoiceTaskRun<S> {
+export function frame<S>(run: ChoiceTaskRun<S>, at: number): ChoiceTaskRun<S> {
   if (!isRunning(run)) return run;
   const now = activeTime(run, at);
 
@@ -94,12 +99,11 @@ export function frame<S extends { congruent: boolean }>(run: ChoiceTaskRun<S>, a
   if (now < run.nextOnsetMs) return run;
 
   const parameters = run.spec.parameters(run.level);
-  const [roll, afterRoll] = nextRandom(run.rng);
-  const [stimulus, rng] = run.spec.makeStimulus(afterRoll, roll < parameters.incongruentRate);
+  const [stimulus, rng] = run.spec.makeStimulus(run.rng, parameters);
   return { ...run, rng, current: { stimulus, onsetMs: now, parameters } };
 }
 
-export function respond<S extends { congruent: boolean }>(
+export function respond<S>(
   run: ChoiceTaskRun<S>,
   at: number,
   choice: string,
@@ -109,18 +113,18 @@ export function respond<S extends { congruent: boolean }>(
   return close(run, activeTime(run, at), { choice, input });
 }
 
-export function beginMain<S extends { congruent: boolean }>(run: ChoiceTaskRun<S>, at: number): ChoiceTaskRun<S> {
+export function beginMain<S>(run: ChoiceTaskRun<S>, at: number): ChoiceTaskRun<S> {
   if (run.phase !== "practice_done") return run;
   return { ...run, phase: "main", phaseStartedAt: at, phasePausedMs: 0, current: null, nextOnsetMs: FIRST_ONSET_MS };
 }
 
-export function pause<S extends { congruent: boolean }>(run: ChoiceTaskRun<S>, at: number): ChoiceTaskRun<S> {
+export function pause<S>(run: ChoiceTaskRun<S>, at: number): ChoiceTaskRun<S> {
   if (run.pausedAt !== null || run.phase === "done") return run;
   return { ...run, pausedAt: at };
 }
 
 /** The stimulus on screen when the pause started is dropped. */
-export function resume<S extends { congruent: boolean }>(run: ChoiceTaskRun<S>, at: number): ChoiceTaskRun<S> {
+export function resume<S>(run: ChoiceTaskRun<S>, at: number): ChoiceTaskRun<S> {
   if (run.pausedAt === null) return run;
   const durationMs = at - run.pausedAt;
   const resumed = {
@@ -133,15 +137,15 @@ export function resume<S extends { congruent: boolean }>(run: ChoiceTaskRun<S>, 
   return { ...resumed, current: null, nextOnsetMs: activeTime(resumed, at) + FIRST_ONSET_MS };
 }
 
-export function activeTime<S extends { congruent: boolean }>(run: ChoiceTaskRun<S>, at: number) {
+export function activeTime<S>(run: ChoiceTaskRun<S>, at: number) {
   return at - run.phaseStartedAt - run.phasePausedMs;
 }
 
-function isRunning<S extends { congruent: boolean }>(run: ChoiceTaskRun<S>) {
+function isRunning<S>(run: ChoiceTaskRun<S>) {
   return run.pausedAt === null && (run.phase === "practice" || run.phase === "main");
 }
 
-function close<S extends { congruent: boolean }>(
+function close<S>(
   run: ChoiceTaskRun<S>,
   closedAt: number,
   answer: { choice: string; input: InputMode } | null,
@@ -169,7 +173,7 @@ function close<S extends { congruent: boolean }>(
       rtMs,
       outcome,
       correct,
-      stimulus: { ...stimulus },
+      stimulus: { ...(stimulus as Record<string, unknown>) },
       response: answer,
       difficulty: { level: run.level, ...parameters },
     },

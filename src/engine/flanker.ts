@@ -1,8 +1,8 @@
 // Flanker (Eriksen): five arrows; answer the direction of the centre one and
 // ignore the flankers, which point the other way on incongruent trials.
 
-import { interpolate, type ChoiceTaskConfig, type ChoiceTaskSpec } from "./choice-task";
-import { nextInt } from "./random";
+import { interpolate, rollIncongruent, type ChoiceTaskConfig, type ChoiceTaskSpec } from "./choice-task";
+import { nextInt, type RngState } from "./random";
 
 export type FlankerDirection = "left" | "right";
 export type FlankerStimulus = { direction: FlankerDirection; congruent: boolean };
@@ -17,15 +17,21 @@ export function flankerDisplay({ direction, congruent }: FlankerStimulus): strin
   return ARROW[flank].repeat(2) + ARROW[direction] + ARROW[flank].repeat(2);
 }
 
+/** Builds one stimulus, congruent or not; exported for tests. */
+export function makeFlankerStimulus(rng: RngState, incongruent: boolean): [FlankerStimulus, RngState] {
+  const [side, next] = nextInt(rng, 0, 1);
+  return [{ direction: side === 0 ? "left" : "right", congruent: !incongruent }, next];
+}
+
 export const FLANKER_SPEC: ChoiceTaskSpec<FlankerStimulus> = {
   parameters: (level) => ({
     incongruentRate: interpolate(level, FLANKER_LEVELS.min, FLANKER_LEVELS.max, 0.25, 0.75),
     responseWindowMs: Math.round(interpolate(level, FLANKER_LEVELS.min, FLANKER_LEVELS.max, 1500, 500)),
     itiMs: Math.round(interpolate(level, FLANKER_LEVELS.min, FLANKER_LEVELS.max, 1000, 300)),
   }),
-  makeStimulus: (rng, incongruent) => {
-    const [side, next] = nextInt(rng, 0, 1);
-    return [{ direction: side === 0 ? "left" : "right", congruent: !incongruent }, next];
+  makeStimulus: (rng, parameters) => {
+    const [incongruent, next] = rollIncongruent(rng, parameters);
+    return makeFlankerStimulus(next, incongruent);
   },
   correctChoice: (stimulus) => stimulus.direction,
 };

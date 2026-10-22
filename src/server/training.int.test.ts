@@ -4,7 +4,9 @@ import { createDb } from "@/db/client";
 import { difficultyState, exerciseRun, trainingSession, user } from "@/db/schema";
 import * as choice from "@/engine/choice-task";
 import * as nback from "@/engine/nback";
+import type { FreePracticeExercise } from "@/engine/exercises";
 import { STROOP_SPEC } from "@/engine/stroop";
+import { symbolDigitKey, symbolDigitSpec } from "@/engine/symbol-digit";
 import { frame, respond, startPvt, type PvtConfig } from "@/engine/pvt";
 import type { Trial } from "@/engine/trial";
 import {
@@ -29,7 +31,7 @@ async function createUser() {
   return id;
 }
 
-function start(userId: string, exercise: "pvt" | "nback" | "stroop" | "flanker" = "pvt") {
+function start(userId: string, exercise: FreePracticeExercise = "pvt") {
   return startFreePractice(db, userId, {
     exercise,
     durationMin: 3,
@@ -268,5 +270,25 @@ describe("choice tasks", () => {
     expect(details.difficultyStart).toMatchObject({ level: 3, incongruentRate: expect.any(Number) });
     expect(details.difficultyEnd!.level).toBeCloseTo(run.level);
     expect((await start(userId, "stroop")).level).toBeCloseTo(run.level);
+  });
+
+  it("runs a symbols-digits session with the key rebuilt from the run's seed", async () => {
+    const userId = await createUser();
+    const started = await start(userId, "symbol_digit");
+    const spec = symbolDigitSpec(symbolDigitKey(started.seed));
+    const config = { ...(started.config as choice.ChoiceTaskConfig), practiceTrials: 0 };
+    let run = choice.startChoiceTask(config, spec, started.seed, 0, started.level!);
+    let at = 0;
+    while (run.phase !== "done") {
+      at += 10;
+      run = choice.frame(run, at);
+      if (run.current) run = choice.respond(run, at + 700, spec.correctChoice(run.current.stimulus), "keyboard");
+    }
+    await recordTrials(db, userId, started.runId, { trials: run.trials });
+    await completeRun(db, userId, started.runId, { pauses: [], trialCount: run.trials.length });
+
+    const details = await getRun(db, userId, started.runId);
+    expect(details.results).toMatchObject({ accuracy: 1, congruencyEffectMs: null, meanRtMs: 700 });
+    expect(details.difficultyEnd).toMatchObject({ level: run.level, responseWindowMs: expect.any(Number) });
   });
 });

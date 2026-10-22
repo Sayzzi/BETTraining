@@ -2,17 +2,19 @@
 // BET block, and how its difficulty moves. Grows with each exercise ticket.
 
 import type { ChoiceTaskConfig } from "./choice-task";
+import { CHOICE_RT_LEVELS, CHOICE_RT_SPEC, choiceRtConfig } from "./choice-rt";
 import { replayLevel, staircaseFor } from "./difficulty";
 import { FLANKER_LEVELS, FLANKER_SPEC, flankerConfig } from "./flanker";
 import { NBACK_LEVELS, nBackConfig, nBackParameters, type NBackConfig } from "./nback";
 import { PVT_B, pvtStandard, type PvtConfig } from "./pvt";
 import { computeRtResults, type RtResults } from "./results";
 import { STROOP_LEVELS, STROOP_SPEC, stroopConfig } from "./stroop";
+import { SYMBOL_DIGIT_LEVELS, symbolDigitConfig, symbolDigitParameters } from "./symbol-digit";
 import type { Trial } from "./trial";
 
 export type CognitiveDomain = "sustained_attention" | "working_memory" | "processing_speed" | "inhibition";
 
-export type ExerciseId = "pvt" | "pvt_b" | "nback" | "stroop" | "flanker";
+export type ExerciseId = "pvt" | "pvt_b" | "nback" | "stroop" | "flanker" | "choice_rt" | "symbol_digit";
 
 export type ExerciseDefinition = {
   id: ExerciseId;
@@ -45,9 +47,29 @@ export const EXERCISES: Record<ExerciseId, ExerciseDefinition> = {
     betEligible: true,
     difficulty: { ...FLANKER_LEVELS, levers: ["incongruentRate", "responseWindow", "interTrialInterval"] },
   },
+  // Short speed drills: they train processing speed but are not used in the BET block.
+  choice_rt: {
+    id: "choice_rt",
+    domains: ["processing_speed"],
+    betEligible: false,
+    difficulty: { ...CHOICE_RT_LEVELS, levers: ["responseWindow", "interTrialInterval"] },
+  },
+  symbol_digit: {
+    id: "symbol_digit",
+    domains: ["processing_speed"],
+    betEligible: false,
+    difficulty: { ...SYMBOL_DIGIT_LEVELS, levers: ["responseWindow", "interTrialInterval"] },
+  },
 };
 
-export const FREE_PRACTICE_EXERCISES = ["pvt", "nback", "stroop", "flanker"] as const satisfies readonly ExerciseId[];
+export const FREE_PRACTICE_EXERCISES = [
+  "pvt",
+  "nback",
+  "stroop",
+  "flanker",
+  "choice_rt",
+  "symbol_digit",
+] as const satisfies readonly ExerciseId[];
 export type FreePracticeExercise = (typeof FREE_PRACTICE_EXERCISES)[number];
 
 export const FREE_PRACTICE_DURATIONS_MIN = [3, 5, 10] as const;
@@ -69,6 +91,10 @@ export function exerciseConfig(exercise: ExerciseId, durationMin: number): Exerc
       return stroopConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
     case "flanker":
       return flankerConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
+    case "choice_rt":
+      return choiceRtConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
+    case "symbol_digit":
+      return symbolDigitConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
   }
 }
 
@@ -98,6 +124,10 @@ export function describeDifficulty(exercise: ExerciseId, level: number): Difficu
       return { level, ...STROOP_SPEC.parameters(level) };
     case "flanker":
       return { level, ...FLANKER_SPEC.parameters(level) };
+    case "choice_rt":
+      return { level, ...CHOICE_RT_SPEC.parameters(level) };
+    case "symbol_digit":
+      return { level, ...symbolDigitParameters(level) };
     default:
       return { level };
   }

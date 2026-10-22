@@ -6,6 +6,7 @@ import {
   pause,
   respond,
   resume,
+  rollIncongruent,
   startChoiceTask,
   type ChoiceTaskConfig,
   type ChoiceTaskRun,
@@ -22,8 +23,9 @@ const SPEC: ChoiceTaskSpec<Stim> = {
     responseWindowMs: Math.round(interpolate(level, 1, 15, 2000, 600)),
     itiMs: Math.round(interpolate(level, 1, 15, 1000, 400)),
   }),
-  makeStimulus: (rng, incongruent) => {
-    const [side, next] = nextInt(rng, 0, 1);
+  makeStimulus: (rng, parameters) => {
+    const [incongruent, afterRoll] = rollIncongruent(rng, parameters);
+    const [side, next] = nextInt(afterRoll, 0, 1);
     return [{ side: side === 0 ? "left" : "right", congruent: !incongruent }, next];
   },
   correctChoice: (stimulus) => stimulus.side,
