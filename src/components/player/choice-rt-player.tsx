@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { CHOICE_RT_SPEC, CHOICE_RT_ZONES, type ChoiceRtStimulus } from "@/engine/choice-rt";
 import { ChoicePlayer, choiceEngine } from "./choice-player";
+import type { FixedRun } from "./use-exercise-run";
 
 const ENGINE = choiceEngine("choice_rt", CHOICE_RT_SPEC);
 const KEYS = ["d", "f", "j", "k"];
@@ -23,11 +24,12 @@ function Zones({ lit }: { lit: number | null }) {
   );
 }
 
-export function ChoiceRtPlayer() {
+export function ChoiceRtPlayer({ fixed }: { fixed?: FixedRun } = {}) {
   const t = useTranslations("choiceRt");
   return (
     <ChoicePlayer<ChoiceRtStimulus>
       engine={ENGINE}
+      fixed={fixed}
       namespace="choiceRt"
       options={KEYS.map((key, position) => ({
         id: String(position),

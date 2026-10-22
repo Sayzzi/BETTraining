@@ -6,7 +6,7 @@ import { useRef } from "react";
 import { activeTime, beginMain, frame, pause, respond, resume, startPvt, type PvtConfig, type PvtRun } from "@/engine/pvt";
 import { pointerInput } from "./device";
 import { ErrorPanel, ExerciseIntro, ExerciseStage, PausedPanel, PracticeDonePanel, SavingPanel } from "./exercise-ui";
-import { useExerciseRun, type ExerciseEngine } from "./use-exercise-run";
+import { useExerciseRun, type ExerciseEngine, type FixedRun } from "./use-exercise-run";
 
 const RESPONSE_KEYS = new Set([" ", "Enter"]);
 
@@ -20,13 +20,14 @@ const PVT_ENGINE: ExerciseEngine<PvtRun> = {
   viewKey: (run) => `${run.phase}|${run.pausedAt !== null}|${run.stimulusOnsetMs !== null}`,
 };
 
-export function PvtPlayer() {
+export function PvtPlayer({ fixed }: { fixed?: FixedRun } = {}) {
   const t = useTranslations("pvt");
   const tPlayer = useTranslations("player");
   const router = useRouter();
   const counterRef = useRef<HTMLSpanElement>(null);
 
   const { stage, run, start, stop, apply, togglePause, beginMain: begin } = useExerciseRun(PVT_ENGINE, {
+    fixed,
     // The counter changes every frame, so it is painted directly.
     onFrame: (current, now) => {
       if (current.stimulusOnsetMs === null || !counterRef.current) return;
@@ -48,10 +49,11 @@ export function PvtPlayer() {
         instructions={<p>{t("instructions")}</p>}
         starting={stage === "starting"}
         onStart={start}
+        fixed={fixed && { label: fixed.label, durationMs: fixed.step.config.durationMs }}
       />
     );
   }
-  if (stage === "error" || !run) return <ErrorPanel onBack={() => router.push("/entrainement")} />;
+  if (stage === "error" || !run) return <ErrorPanel onBack={() => (fixed ? fixed.onStop() : router.push("/entrainement"))} />;
 
   const paused = run.pausedAt !== null;
   const active = run.phase === "practice" || run.phase === "main";

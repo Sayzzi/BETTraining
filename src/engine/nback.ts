@@ -17,6 +17,8 @@ export type NBackConfig = {
   maxLevel: number;
   /** Success rate the difficulty converges to. */
   target: number;
+  /** False freezes the level (assessments must stay comparable). Defaults to true. */
+  adaptive?: boolean;
 };
 
 export const NBACK_LEVELS = { min: 1, max: 15, initial: 2 } as const;
@@ -204,7 +206,7 @@ function closeCurrent(run: NBackRun): NBackRun {
       },
     ];
     // Practice never moves the level.
-    if (phase === "main") level = updateLevel(level, correct, run.staircase);
+    if (phase === "main" && run.config.adaptive !== false) level = updateLevel(level, correct, run.staircase);
   }
 
   const closed: NBackRun = {

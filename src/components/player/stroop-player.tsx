@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { STROOP_COLORS, STROOP_SPEC, type StroopColor, type StroopStimulus } from "@/engine/stroop";
 import { ChoicePlayer, choiceEngine } from "./choice-player";
+import type { FixedRun } from "./use-exercise-run";
 
 const ENGINE = choiceEngine("stroop", STROOP_SPEC);
 
@@ -16,11 +17,12 @@ export const INK: Record<StroopColor, string> = {
 
 const KEYS: Record<StroopColor, string> = { red: "d", green: "f", blue: "j", yellow: "k" };
 
-export function StroopPlayer() {
+export function StroopPlayer({ fixed }: { fixed?: FixedRun } = {}) {
   const t = useTranslations("stroop");
   return (
     <ChoicePlayer<StroopStimulus>
       engine={ENGINE}
+      fixed={fixed}
       namespace="stroop"
       options={STROOP_COLORS.map((color) => ({
         id: color,

@@ -80,21 +80,26 @@ export const FREE_PRACTICE_TARGET = 0.8;
 export type ExerciseConfig = PvtConfig | NBackConfig | ChoiceTaskConfig;
 
 export function exerciseConfig(exercise: ExerciseId, durationMin: number): ExerciseConfig {
+  return exerciseConfigFor(exercise, exercise === "pvt_b" ? PVT_B.durationMs : durationMin * 60_000);
+}
+
+/** Configuration for an exact duration, used by fixed protocols such as the assessment. */
+export function exerciseConfigFor(exercise: ExerciseId, durationMs: number, target = FREE_PRACTICE_TARGET): ExerciseConfig {
   switch (exercise) {
     case "pvt_b":
-      return PVT_B;
+      return { ...PVT_B, durationMs };
     case "pvt":
-      return pvtStandard(durationMin * 60_000);
+      return pvtStandard(durationMs);
     case "nback":
-      return nBackConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
+      return nBackConfig(durationMs, target);
     case "stroop":
-      return stroopConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
+      return stroopConfig(durationMs, target);
     case "flanker":
-      return flankerConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
+      return flankerConfig(durationMs, target);
     case "choice_rt":
-      return choiceRtConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
+      return choiceRtConfig(durationMs, target);
     case "symbol_digit":
-      return symbolDigitConfig(durationMin * 60_000, FREE_PRACTICE_TARGET);
+      return symbolDigitConfig(durationMs, target);
   }
 }
 
@@ -104,7 +109,7 @@ export function computeExerciseResults(config: ExerciseConfig, trials: Trial[]):
 
 /** Level reached at the end of a run, replayed from its counted trials. Null without difficulty. */
 export function finalLevel(config: ExerciseConfig, startLevel: number | null, trials: Trial[]): number | null {
-  if (startLevel === null || !("target" in config)) return null;
+  if (startLevel === null || !("target" in config) || config.adaptive === false) return null;
   const staircase = staircaseFor(config.target, { min: config.minLevel, max: config.maxLevel });
   return replayLevel(
     startLevel,
