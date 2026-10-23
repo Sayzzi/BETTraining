@@ -33,6 +33,9 @@ export async function SessionSummaryView({ summary }: { summary: BetSessionSumma
       {summary.status === "incomplete" ? (
         <p className="mt-6 max-w-[60ch] font-semibold text-alerte">{t("incomplete")}</p>
       ) : null}
+      {summary.fatigueAdvice ? (
+        <p className="mt-4 max-w-[60ch] text-schiste">{t(`fatigueAdvice.${summary.fatigueAdvice}`)}</p>
+      ) : null}
 
       {summary.kind === "bet" ? (
         <div className="mt-8 rounded-lg bg-ardoise px-6 py-8 text-brume md:px-10">

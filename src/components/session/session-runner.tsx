@@ -16,7 +16,10 @@ type Ratings = { postFatigue: number | null; perceivedEffort: number | null; mot
 type State =
   | { kind: "setup"; interrupted: boolean }
   | { kind: "starting" }
-  | { kind: "running"; plan: StartedBetSession }
+  // A BET session first plays its opening fatigue check alone, then the rest after the advice.
+  | { kind: "running"; plan: StartedBetSession; part: "opening" | "rest" | "all" }
+  | { kind: "advice"; plan: StartedBetSession; lapses: number; sending: boolean }
+  | { kind: "rested" }
   | { kind: "ratings"; plan: StartedBetSession; sending: boolean }
   | { kind: "error" };
 
@@ -56,7 +59,39 @@ export function SessionRunner({ mode }: { mode: SessionMode }) {
         }),
       });
       if (!response.ok) throw new Error(`Start failed with status ${response.status}`);
-      setState({ kind: "running", plan: await response.json() });
+      setState({ kind: "running", plan: await response.json(), part: mode.kind === "bet" ? "opening" : "all" });
+    } catch {
+      setState({ kind: "error" });
+    }
+  }
+
+  /** After the opening check: offer a lighter session or rest when fatigue is already high. */
+  async function checkFatigue(plan: StartedBetSession) {
+    try {
+      const response = await fetch(`/api/bet-session/${plan.sessionId}/fatigue-advice`);
+      if (!response.ok) throw new Error(`Advice failed with status ${response.status}`);
+      const advice: { advised: boolean; lapses: number } = await response.json();
+      setState(
+        advice.advised
+          ? { kind: "advice", plan, lapses: advice.lapses, sending: false }
+          : { kind: "running", plan, part: "rest" },
+      );
+    } catch {
+      setState({ kind: "error" });
+    }
+  }
+
+  async function answerAdvice(plan: StartedBetSession, lapses: number, choice: "lighten" | "continue" | "rest") {
+    setState({ kind: "advice", plan, lapses, sending: true });
+    try {
+      const response = await fetch(`/api/bet-session/${plan.sessionId}/fatigue-advice`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ choice }),
+      });
+      if (!response.ok) throw new Error(`Advice choice failed with status ${response.status}`);
+      const { steps }: { steps: StartedBetSession["steps"] | null } = await response.json();
+      setState(steps ? { kind: "running", plan: { ...plan, steps }, part: "rest" } : { kind: "rested" });
     } catch {
       setState({ kind: "error" });
     }
@@ -243,10 +278,61 @@ export function SessionRunner({ mode }: { mode: SessionMode }) {
     );
   }
 
-  const { plan } = state;
+  if (state.kind === "rested") {
+    return (
+      <section role="status" className="max-w-[60ch]">
+        <h1 className="type-wide text-3xl font-extrabold">{t("restedTitle")}</h1>
+        <p className="mt-4 text-lg text-schiste">{t("restedBody")}</p>
+        <button type="button" onClick={() => router.push("/")} className={`mt-8 ${PRIMARY_BUTTON}`}>
+          {t("backHome")}
+        </button>
+      </section>
+    );
+  }
+
+  if (state.kind === "advice") {
+    const { plan, lapses, sending } = state;
+    return (
+      <section className="max-w-[60ch]">
+        <h1 className="type-wide text-3xl font-extrabold">{t("adviceTitle")}</h1>
+        <p className="mt-4 text-lg">{t("adviceBody", { lapses })}</p>
+        <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <button
+            type="button"
+            disabled={sending}
+            onClick={() => void answerAdvice(plan, lapses, "lighten")}
+            className={PRIMARY_BUTTON}
+          >
+            {t("adviceLighten")}
+          </button>
+          <button
+            type="button"
+            disabled={sending}
+            onClick={() => void answerAdvice(plan, lapses, "rest")}
+            className="font-semibold underline underline-offset-4"
+          >
+            {t("adviceRest")}
+          </button>
+          <button
+            type="button"
+            disabled={sending}
+            onClick={() => void answerAdvice(plan, lapses, "continue")}
+            className="font-semibold underline underline-offset-4"
+          >
+            {t("adviceContinue")}
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  const { plan, part } = state;
+  const steps =
+    part === "opening" ? plan.steps.slice(0, 1) : part === "rest" ? plan.steps.slice(1) : plan.steps;
   return (
     <ProtocolRunner<SessionStepRun>
-      steps={plan.steps}
+      key={part}
+      steps={steps}
       briefing={(step) => ({
         eyebrow: t("blockOf", { block: BLOCKS.indexOf(step.block as SessionBlock) + 1 }),
         title: t(`blocks.${step.block as SessionBlock}.title`),
@@ -261,7 +347,9 @@ export function SessionRunner({ mode }: { mode: SessionMode }) {
           total: inBlock.length,
         });
       }}
-      onFinished={() => setState({ kind: "ratings", plan, sending: false })}
+      onFinished={() =>
+        part === "opening" ? void checkFatigue(plan) : setState({ kind: "ratings", plan, sending: false })
+      }
       onStopped={() => setState({ kind: "setup", interrupted: true })}
     />
   );

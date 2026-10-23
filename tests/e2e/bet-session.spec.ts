@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
 
-const ADVANCE_BUTTONS = ["Continuer", "Commencer le test", "Commencer l'exercice"];
+const ADVANCE_BUTTONS = ["Continuer", "Commencer le test", "Commencer l'exercice", "Continuer normalement"];
 
 async function signUp(page: Page) {
   const email = `seance-${crypto.randomUUID()}@example.com`;
