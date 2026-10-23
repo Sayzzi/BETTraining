@@ -8,6 +8,8 @@ import { getCurrentUser } from "@/lib/current-user";
 import { latestAssessments } from "@/server/assessment";
 import { previewBetSession, previewLightSession } from "@/server/bet-session";
 import { getDailySession } from "@/server/daily";
+import { PostponeAssessmentButton } from "@/components/postpone-assessment-button";
+import { refreshLoad } from "@/server/load";
 import { getPreferences } from "@/server/preferences";
 
 const PRIMARY = "inline-block h-12 rounded-md bg-ardoise px-6 leading-12 font-semibold text-brume hover:bg-ardoise/90";
@@ -73,65 +75,80 @@ async function Home() {
 
 /** Today's session chosen from the week so far, with why it looks the way it does. */
 async function DailySession({ userId }: { userId: string }) {
-  const [t, daily, preferences, betPreviews, lightPreview] = await Promise.all([
+  const [t, daily, preferences, betPreviews, lightPreview, load] = await Promise.all([
     getTranslations("home.daily"),
     getDailySession(db, userId),
     getPreferences(db, userId),
     previewBetSession(db, userId),
     previewLightSession(db, userId),
+    refreshLoad(db, userId),
   ]);
   const week = daily.week;
 
   return (
-    <section className="mt-8 max-w-[62ch] border-l-2 border-chrono pl-5 md:pl-6">
-      <h2 className="type-wide text-2xl font-bold">
-        {daily.done ? t("doneTitle") : t(`${daily.kind}Title`)}
-      </h2>
-      <div className="mt-3 text-lg">
-        {daily.done ? (
-          <p>{t("doneBody", { kind: daily.kind })}</p>
-        ) : daily.kind === "bet" && betPreviews ? (
-          <PlanExplanationText explanation={betPreviews[preferences.defaultDurationMin]} />
-        ) : daily.kind === "light" && lightPreview ? (
-          <>
-            <p>{t("lightBody")}</p>
-            <PlanExplanationText explanation={lightPreview} />
-          </>
-        ) : (
-          <p>{t("restBody")}</p>
-        )}
-      </div>
-      <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-        {daily.done && daily.todaysSessionId ? (
-          <Link href={`/seance/resultats/${daily.todaysSessionId}`} className={PRIMARY}>
-            {t("seeSummary")}
-          </Link>
-        ) : daily.kind === "bet" ? (
-          <Link href="/seance" className={PRIMARY}>
-            {t("startBet")}
-          </Link>
-        ) : daily.kind === "light" ? (
-          <>
-            <Link href="/seance/legere" className={PRIMARY}>
-              {t("startLight")}
+    <>
+      {load.assessmentDue ? (
+        <section className="mt-8 max-w-[62ch] rounded-lg bg-ardoise px-6 py-6 text-brume md:px-8">
+          <h2 className="type-wide text-xl font-bold text-chrono">{t("assessmentDueTitle")}</h2>
+          <p className="mt-2 text-trait">{t("assessmentDueBody")}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-6">
+            <Link href="/bilan" className="inline-block h-12 rounded-md bg-chrono px-6 leading-12 font-semibold text-ardoise">
+              {t("takeAssessment")}
             </Link>
-            <Link href="/seance" className={SECONDARY}>
-              {t("betInstead")}
+            <PostponeAssessmentButton />
+          </div>
+        </section>
+      ) : null}
+      <section className="mt-8 max-w-[62ch] border-l-2 border-chrono pl-5 md:pl-6">
+        <h2 className="type-wide text-2xl font-bold">
+          {daily.done ? t("doneTitle") : t(`${daily.kind}Title`)}
+        </h2>
+        <div className="mt-3 text-lg">
+          {daily.done ? (
+            <p>{t("doneBody", { kind: daily.kind })}</p>
+          ) : daily.kind === "bet" && betPreviews ? (
+            <PlanExplanationText explanation={betPreviews[preferences.defaultDurationMin]} />
+          ) : daily.kind === "light" && lightPreview ? (
+            <>
+              <p>{t("lightBody")}</p>
+              <PlanExplanationText explanation={lightPreview} />
+            </>
+          ) : (
+            <p>{t("restBody")}</p>
+          )}
+        </div>
+        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+          {daily.done && daily.todaysSessionId ? (
+            <Link href={`/seance/resultats/${daily.todaysSessionId}`} className={PRIMARY}>
+              {t("seeSummary")}
             </Link>
-          </>
-        ) : (
-          <Link href="/seance/legere" className={SECONDARY}>
-            {t("lightAnyway")}
+          ) : daily.kind === "bet" ? (
+            <Link href="/seance" className={PRIMARY}>
+              {t("startBet")}
+            </Link>
+          ) : daily.kind === "light" ? (
+            <>
+              <Link href="/seance/legere" className={PRIMARY}>
+                {t("startLight")}
+              </Link>
+              <Link href="/seance" className={SECONDARY}>
+                {t("betInstead")}
+              </Link>
+            </>
+          ) : (
+            <Link href="/seance/legere" className={SECONDARY}>
+              {t("lightAnyway")}
+            </Link>
+          )}
+        </div>
+        <p className="mt-6 text-schiste">
+          {t("week", { betDone: week.betDone, betTarget: week.betTarget, lightDone: week.lightDone, goal: week.goal })}{" "}
+          <Link href="/preferences" className="underline underline-offset-4">
+            {t("changePreferences")}
           </Link>
-        )}
-      </div>
-      <p className="mt-6 text-schiste">
-        {t("week", { betDone: week.betDone, betTarget: week.betTarget, lightDone: week.lightDone, goal: week.goal })}{" "}
-        <Link href="/preferences" className="underline underline-offset-4">
-          {t("changePreferences")}
-        </Link>
-      </p>
-    </section>
+        </p>
+      </section>
+    </>
   );
 }
 

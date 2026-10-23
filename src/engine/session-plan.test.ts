@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ChoiceTaskConfig } from "./choice-task";
 import { EXERCISES } from "./exercises";
 import type { NBackConfig } from "./nback";
+import { loadParameters, type LoadParameters } from "./load";
 import type { RtResults } from "./results";
 import {
   BET_DURATIONS_MIN,
@@ -118,11 +119,12 @@ describe("BET session plan", () => {
   });
 });
 
-/** Targeted slots per domain over many 45-minute sessions (three slots each). */
+/** Targeted slots per domain over many 45-minute sessions (four slots each at the starting load). */
 function targetedShares(classification: BetHistory["classification"], options?: { weaknessWeight?: number }) {
   const counts: Record<string, number> = {};
   let history: BetHistory = { ...FIRST, classification };
-  for (let session = 0; session < 40; session++) {
+  // 60 sessions of four slots: a whole number of every weighted cycle used below.
+  for (let session = 0; session < 60; session++) {
     for (const step of planBetSession(45, history, 1, options).steps.filter((s) => s.block === "targeted")) {
       counts[step.domain!] = (counts[step.domain!] ?? 0) + 1;
     }
@@ -191,11 +193,50 @@ describe("plan explanation", () => {
       targetedDomains: steps.filter((s) => s.block === "targeted").map((s) => s.domain),
       betExercises: steps.filter((s) => s.block === "bet").map((s) => s.exercise),
       replacedBetExercises: ["stroop"],
+      load: null,
     });
   });
 
   it("says when there is no ranking yet", () => {
     expect(planBetSession(30, FIRST).explanation).toMatchObject({ rankingAvailable: false, weaknesses: [] });
+  });
+});
+
+describe("load in the plan", () => {
+  const load = (step: number, parameters: Partial<LoadParameters>) => ({
+    step,
+    deload: false,
+    lastChange: null,
+    parameters: { ...loadParameters(0), ...parameters },
+  });
+
+  it("sizes the BET block with the load's share", () => {
+    const share = (betShare: number) =>
+      planBetSession(60, FIRST, 1, { load: load(1, { betShare }) })
+        .steps.filter((s) => s.block === "bet")
+        .reduce((sum, s) => sum + s.config.durationMs, 0) / 60_000;
+    expect(share(0.6)).toBe(36);
+    expect(share(0.7)).toBe(42);
+  });
+
+  it("splits the BET block only beyond the load's longest exercise", () => {
+    const count = (betExerciseMaxMin: number) =>
+      planBetSession(45, FIRST, 1, { load: load(3, { betExerciseMaxMin }) }).steps.filter((s) => s.block === "bet").length;
+    expect(count(20)).toBe(2);
+    expect(count(30)).toBe(1);
+  });
+
+  it("raises the starting level of adaptive BET exercises only", () => {
+    const { steps } = planBetSession(60, FIRST, 1, { load: load(2, { betLevelOffset: 2 }) });
+    for (const step of steps) {
+      expect(step.levelOffset).toBe(step.block === "bet" && step.difficultyKey ? 2 : 0);
+    }
+  });
+
+  it("reports the load in the explanation", () => {
+    const change = { kind: "up" as const, variable: "betShare" as const, date: "2026-10-19" };
+    const { explanation } = planBetSession(30, FIRST, 1, { load: { ...load(1, {}), deload: true, lastChange: change } });
+    expect(explanation.load).toEqual({ step: 1, deload: true, lastChange: change });
   });
 });
 

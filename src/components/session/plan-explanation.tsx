@@ -1,5 +1,5 @@
 import { useFormatter, useTranslations } from "next-intl";
-import type { PlanExplanation } from "@/engine/session-plan";
+import type { PlanExplanation, SessionLoad } from "@/engine/session-plan";
 
 /** Why the session is composed this way, in a few short sentences. */
 export function PlanExplanationText({ explanation }: { explanation: PlanExplanation }) {
@@ -27,6 +27,28 @@ export function PlanExplanationText({ explanation }: { explanation: PlanExplanat
             replaced: exercises(explanation.replacedBetExercises),
           })
         : t("bet", { exercises: exercises(explanation.betExercises) })}
+      {explanation.load ? <LoadSentence load={explanation.load} /> : null}
     </p>
+  );
+}
+
+/** The light week, then the latest load change and why it happened. */
+function LoadSentence({ load }: { load: SessionLoad }) {
+  const t = useTranslations("planExplanation.load");
+  const format = useFormatter();
+  const change = load.lastChange;
+  const date = change ? format.dateTime(new Date(`${change.date}T12:00:00`), { day: "numeric", month: "long" }) : "";
+  return (
+    <>
+      {load.deload ? <> {t("deload")}</> : null}
+      {change ? (
+        <>
+          {" "}
+          {change.kind === "up"
+            ? t("up", { date, variable: change.variable ?? "betShare" })
+            : t(change.kind, { date })}
+        </>
+      ) : null}
+    </>
   );
 }

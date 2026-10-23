@@ -22,8 +22,18 @@ import {
   type PlanExplanation,
   type SessionBlock,
 } from "@/engine/session-plan";
+import { adviseLighterSession, type LoadEvaluation } from "@/engine/load";
+import { EXERCISES } from "@/engine/exercises";
 import { currentClassification, hasCompletedAssessment } from "./assessment";
-import { abandonOpenSessions, currentLevel, deviceInput, NotFoundError, type StartedRun } from "./training";
+import { refreshLoad } from "./load";
+import {
+  abandonOpenSessions,
+  abandonSession,
+  currentLevel,
+  deviceInput,
+  NotFoundError,
+  type StartedRun,
+} from "./training";
 
 /** The session needs a completed assessment first. */
 export class AssessmentRequiredError extends Error {}
@@ -53,12 +63,12 @@ export async function startBetSession(
 ): Promise<StartedBetSession> {
   const { durationMin, context, preFatigue, ...device } = startBetSessionInput.parse(input);
   if (!(await hasCompletedAssessment(db, userId))) throw new AssessmentRequiredError();
-  const classification = await currentClassification(db, userId);
+  const [classification, load] = await Promise.all([currentClassification(db, userId), refreshLoad(db, userId)]);
 
   return db.transaction(async (tx) => {
     await abandonOpenSessions(tx, userId);
     const history = { ...(await betHistory(tx, userId)), classification };
-    const plan = planBetSession(durationMin, history, timeScale);
+    const plan = planBetSession(durationMin, history, timeScale, { load: sessionLoadOf(load) });
     return createPlannedSession(tx, userId, plan, { kind: "bet", ...device, context, durationMin, preFatigue });
   });
 }
@@ -92,6 +102,17 @@ export async function startLightSession(
 
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
+/** Saved level plus the load's offset, kept within the exercise's range. */
+async function startingLevel(tx: Transaction, userId: string, exercise: ExerciseId, key: string, offset: number) {
+  const level = await currentLevel(tx, userId, exercise, key);
+  const max = EXERCISES[exercise].difficulty?.max ?? Infinity;
+  return level === null ? null : Math.min(max, level + offset);
+}
+
+function sessionLoadOf(load: LoadEvaluation) {
+  return { step: load.state.step, deload: load.deload, lastChange: load.state.lastChange, parameters: load.parameters };
+}
+
 /** Inserts the session, then one run per planned step with its saved difficulty level. */
 async function createPlannedSession(
   tx: Transaction,
@@ -108,7 +129,7 @@ async function createPlannedSession(
     planned.map(async (step) => ({
       ...step,
       seed: randomSeed(),
-      level: step.difficultyKey ? await currentLevel(tx, userId, step.exercise, step.difficultyKey) : null,
+      level: step.difficultyKey ? await startingLevel(tx, userId, step.exercise, step.difficultyKey, step.levelOffset) : null,
     })),
   );
   const runs = await tx
@@ -180,6 +201,7 @@ export type BetSessionSummary = {
   };
   sessionLoad: number | null;
   explanation: PlanExplanation | null;
+  fatigueAdvice: "lightened" | "declined" | "rested" | null;
   fatigueCheck: ReturnType<typeof fatigueCheckChange>;
   runs: {
     id: string;
@@ -229,6 +251,7 @@ export async function getBetSessionSummary(db: Database, userId: string, session
     },
     sessionLoad: session.sessionLoad,
     explanation: session.planExplanation as PlanExplanation | null,
+    fatigueAdvice: session.fatigueAdvice as BetSessionSummary["fatigueAdvice"],
     fatigueCheck: fatigueCheckChange(resultsOf("fatigue_open"), resultsOf("fatigue_close")),
     runs,
   };
@@ -243,9 +266,16 @@ export async function previewBetSession(
   userId: string,
 ): Promise<Record<BetDuration, PlanExplanation> | null> {
   if (!(await hasCompletedAssessment(db, userId))) return null;
-  const [history, classification] = await Promise.all([betHistory(db, userId), currentClassification(db, userId)]);
+  const [history, classification, load] = await Promise.all([
+    betHistory(db, userId),
+    currentClassification(db, userId),
+    refreshLoad(db, userId),
+  ]);
   return Object.fromEntries(
-    BET_DURATIONS_MIN.map((duration) => [duration, planBetSession(duration, { ...history, classification }).explanation]),
+    BET_DURATIONS_MIN.map((duration) => [
+      duration,
+      planBetSession(duration, { ...history, classification }, 1, { load: sessionLoadOf(load) }).explanation,
+    ]),
   ) as Record<BetDuration, PlanExplanation>;
 }
 
@@ -268,6 +298,82 @@ async function betHistory(
         .where(and(eq(exerciseRun.sessionId, last.id), eq(exerciseRun.block, "bet")))
     : [];
   return { betSessionCount: total, previousBetExercises: previous.map((row) => row.exercise as ExerciseId) };
+}
+
+export type FatigueAdvice = { advised: boolean; lapses: number };
+
+/** After the opening fatigue check: more than three lapses advises a lighter session or rest. */
+export async function getFatigueAdvice(db: Database, userId: string, sessionId: string): Promise<FatigueAdvice> {
+  await findOwnedBetSession(db, userId, sessionId);
+  const [opening] = await db
+    .select({ results: exerciseRun.results })
+    .from(exerciseRun)
+    .where(and(eq(exerciseRun.sessionId, sessionId), eq(exerciseRun.block, "fatigue_open")));
+  const lapses = (opening?.results as RtResults | null)?.lapses ?? 0;
+  return { advised: adviseLighterSession(lapses), lapses };
+}
+
+export const fatigueChoiceInput = z.object({ choice: z.enum(["lighten", "continue", "rest"]) });
+
+// A lightened session keeps half of its BET block, two levels easier.
+const LIGHTENED_BET_SHARE = 0.5;
+const LIGHTENED_LEVEL_DROP = 2;
+
+/**
+ * Records the user's answer to the advice. "lighten" shortens and eases the BET block and
+ * returns the updated steps; "rest" ends the session (kept, marked incomplete).
+ */
+export async function chooseFatigueAdvice(
+  db: Database,
+  userId: string,
+  sessionId: string,
+  input: z.infer<typeof fatigueChoiceInput>,
+): Promise<{ steps: SessionStepRun[] | null }> {
+  const { choice } = fatigueChoiceInput.parse(input);
+  await findOwnedBetSession(db, userId, sessionId);
+  const advice = { lighten: "lightened", continue: "declined", rest: "rested" } as const;
+  await db.update(trainingSession).set({ fatigueAdvice: advice[choice] }).where(eq(trainingSession.id, sessionId));
+
+  if (choice === "rest") {
+    await abandonSession(db, userId, sessionId);
+    return { steps: null };
+  }
+  if (choice === "lighten") {
+    const betRuns = await db
+      .select()
+      .from(exerciseRun)
+      .where(and(eq(exerciseRun.sessionId, sessionId), eq(exerciseRun.block, "bet")));
+    for (const run of betRuns) {
+      const config = run.config as ExerciseConfig;
+      const start = run.difficultyStart as { level: number } | null;
+      const minLevel = EXERCISES[run.exercise as ExerciseId].difficulty?.min ?? 1;
+      const level = start ? Math.max(minLevel, start.level - LIGHTENED_LEVEL_DROP) : null;
+      const lighter = { ...config, durationMs: Math.round(config.durationMs * LIGHTENED_BET_SHARE) };
+      await db
+        .update(exerciseRun)
+        .set({
+          config: lighter,
+          difficultyStart: level === null ? null : describeRunDifficulty(run.exercise as ExerciseId, lighter, level),
+        })
+        .where(eq(exerciseRun.id, run.id));
+    }
+  }
+  return { steps: await sessionSteps(db, sessionId) };
+}
+
+/** The session's runs as playable steps, in order. */
+async function sessionSteps(db: Database, sessionId: string): Promise<SessionStepRun[]> {
+  const runs = await db.select().from(exerciseRun).where(eq(exerciseRun.sessionId, sessionId)).orderBy(asc(exerciseRun.position));
+  return runs.map((run) => ({
+    sessionId,
+    runId: run.id,
+    exercise: run.exercise as ExerciseId,
+    seed: run.seed,
+    config: run.config as ExerciseConfig,
+    level: (run.difficultyStart as { level: number } | null)?.level ?? null,
+    position: run.position,
+    block: run.block as SessionBlock,
+  }));
 }
 
 /** Sessions of a kind the user ever started, to rotate plans from one session to the next. */

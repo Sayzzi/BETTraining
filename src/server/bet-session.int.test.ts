@@ -75,7 +75,8 @@ describe("BET sessions", () => {
     const userId = await createAssessedUser();
     const started = await startBetSession(db, userId, SESSION, QUICK);
 
-    expect(started.steps.map((s) => s.block)).toEqual(["fatigue_open", "targeted", "bet", "fatigue_close"]);
+    // Starting load (60 % BET): 18 minutes of BET, two 3-minute targeted exercises.
+    expect(started.steps.map((s) => s.block)).toEqual(["fatigue_open", "targeted", "targeted", "bet", "fatigue_close"]);
     const [session] = await db.select().from(trainingSession).where(eq(trainingSession.id, started.sessionId));
     expect(session).toMatchObject({ kind: "bet", context: "after_sport", durationMin: 30, preFatigue: 3, status: "in_progress" });
     const runs = await db.select().from(exerciseRun).where(eq(exerciseRun.sessionId, started.sessionId));
@@ -119,7 +120,7 @@ describe("BET sessions", () => {
       ratings: { preFatigue: 3, postFatigue: 7, perceivedEffort: 8, motivation: 6 },
     });
     expect(summary.fatigueCheck).toEqual({ meanRtChangeMs: 40, lapsesChange: 0 });
-    expect(summary.runs).toHaveLength(4);
+    expect(summary.runs).toHaveLength(5);
     expect(summary.runs.every((r) => r.results !== null)).toBe(true);
   });
 

@@ -121,6 +121,8 @@ export const trainingSession = pgTable(
     sessionLoad: integer("session_load"),
     /** Why the planned session looks as it does (weaknesses, targeted domains, BET rotation). */
     planExplanation: jsonb("plan_explanation"),
+    /** Choice after a lighter session was advised (many lapses at the opening check): lightened, declined or rested. */
+    fatigueAdvice: text("fatigue_advice"),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
   },
@@ -225,6 +227,22 @@ export const userPreferences = pgTable("user_preferences", {
   weeklyGoal: integer("weekly_goal").notNull(),
   /** IANA time zone used to tell calendar days apart. */
   timeZone: text("time_zone").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+/** Load progression per user (see engine/load.ts); dates are local calendar days (YYYY-MM-DD). */
+export const loadState = pgTable("load_state", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  step: integer("step").notNull(),
+  lastStepAt: text("last_step_at").notNull(),
+  cycleStartedAt: text("cycle_started_at").notNull(),
+  assessmentPostponedUntil: text("assessment_postponed_until"),
+  lastChange: jsonb("last_change"),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

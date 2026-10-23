@@ -5,6 +5,7 @@
 
 import { EXERCISES, exerciseConfigFor, type CognitiveDomain, type ExerciseConfig, type ExerciseId } from "./exercises";
 import { PVT_B } from "./pvt";
+import { loadParameters, type LoadChange, type LoadParameters } from "./load";
 import type { RtResults } from "./results";
 import type { Classification } from "./strengths";
 
@@ -22,6 +23,8 @@ export type PlannedStep = {
   config: ExerciseConfig;
   /** Key of the saved difficulty level this run reads and updates; null without difficulty. */
   difficultyKey: string | null;
+  /** Levels added to the saved level when the run starts (load progression, BET block only). */
+  levelOffset: number;
 };
 
 export type BetHistory = {
@@ -42,6 +45,14 @@ export type PlanExplanation = {
   betExercises: ExerciseId[];
   /** The previous session's BET exercises, which this session rotates away from. */
   replacedBetExercises: ExerciseId[];
+  /** Load behind a BET session: its step, the light week, and the latest change. Absent for light sessions. */
+  load?: SessionLoad | null;
+};
+
+export type SessionLoad = {
+  step: number;
+  deload: boolean;
+  lastChange: LoadChange | null;
 };
 
 export type BetSessionPlan = { steps: PlannedStep[]; explanation: PlanExplanation };
@@ -49,13 +60,15 @@ export type BetSessionPlan = { steps: PlannedStep[]; explanation: PlanExplanatio
 export type PlanOptions = {
   /** Targeted slots a weakness gets for each slot of a strength (2:1 by default). */
   weaknessWeight?: number;
+  /** Load progression state; step 0 when absent. */
+  load?: SessionLoad & { parameters: LoadParameters };
 };
 
-const BET_SHARE = 0.65;
-const SINGLE_BET_EXERCISE_MAX_MIN = 25;
 const TARGETED_EXERCISE_MIN = 3;
 export const BET_TARGET = 0.95;
 const TARGETED_TARGET = 0.8;
+
+// BET block share and longest single exercise come from the load (see load.ts).
 
 // BET rotation order; Stroop first, as in most BET studies.
 const BET_EXERCISES: ExerciseId[] = ["stroop", "flanker", "nback", "pvt"];
@@ -76,10 +89,11 @@ export function planBetSession(
   durationMin: BetDuration,
   history: BetHistory,
   timeScale = 1,
-  { weaknessWeight = WEAKNESS_WEIGHT }: PlanOptions = {},
+  { weaknessWeight = WEAKNESS_WEIGHT, load }: PlanOptions = {},
 ): BetSessionPlan {
+  const parameters = load?.parameters ?? loadParameters(0);
   const checkMin = PVT_B.durationMs / 60_000;
-  const betMin = Math.round(durationMin * BET_SHARE);
+  const betMin = Math.round(durationMin * parameters.betShare);
   const targetedMin = durationMin - 2 * checkMin - betMin;
   const targetedCount = Math.max(1, Math.round(targetedMin / TARGETED_EXERCISE_MIN));
 
@@ -98,7 +112,7 @@ export function planBetSession(
     ),
   );
 
-  const betExercises = pickBetExercises(betMin > SINGLE_BET_EXERCISE_MAX_MIN ? 2 : 1, history.previousBetExercises);
+  const betExercises = pickBetExercises(betMin > parameters.betExerciseMaxMin ? 2 : 1, history.previousBetExercises);
   for (const exercise of betExercises) {
     const config = withoutPractice(exerciseConfigFor(exercise, minutesToMs(betMin / betExercises.length), BET_TARGET));
     const pinned = BET_INCONGRUENT_RATE[exercise];
@@ -109,6 +123,7 @@ export function planBetSession(
       config: pinned === undefined ? config : { ...config, fixedIncongruentRate: pinned },
       // A separate level: 95 % would otherwise drag down the 80 % free-practice level.
       difficultyKey: EXERCISES[exercise].difficulty ? `${exercise}:bet` : null,
+      levelOffset: EXERCISES[exercise].difficulty ? parameters.betLevelOffset : 0,
     });
   }
 
@@ -124,6 +139,7 @@ export function planBetSession(
       targetedDomains: planned.filter((s) => s.block === "targeted").map((s) => s.domain!),
       betExercises: betExercises,
       replacedBetExercises: history.previousBetExercises.filter((e) => !betExercises.includes(e)),
+      load: load ? { step: load.step, deload: load.deload, lastChange: load.lastChange } : null,
     },
   };
 }
@@ -174,8 +190,11 @@ function targetedSteps(
   durationMs: number,
 ): Omit<PlannedStep, "position">[] {
   const cycle = targetedCycle(classification, weaknessWeight);
-  return Array.from({ length: count }, (_, slot) => {
-    const turn = firstTurn + slot;
+  const turns = spreadOut(
+    Array.from({ length: count }, (_, slot) => firstTurn + slot),
+    (turn) => cycle[turn % cycle.length],
+  );
+  return turns.map((turn) => {
     const domain = cycle[turn % cycle.length];
     const choices = DOMAIN_EXERCISES[domain];
     const exercise = choices[occurrencesBefore(cycle, domain, turn) % choices.length];
@@ -185,6 +204,7 @@ function targetedSteps(
       domain,
       config: withoutPractice(exerciseConfigFor(exercise, durationMs, TARGETED_TARGET)),
       difficultyKey: EXERCISES[exercise].difficulty ? exercise : null,
+      levelOffset: 0,
     };
   });
 }
@@ -214,6 +234,28 @@ function targetedCycle(
   return cycle;
 }
 
+/**
+ * Reorders turns so the same domain never comes twice in a row (the cycle can end and restart
+ * on the same domain): each slot takes the domain with the most turns left, other than the
+ * previous one, ties going to the earliest turn. Each domain keeps its share.
+ */
+function spreadOut(turns: number[], domainOf: (turn: number) => CognitiveDomain): number[] {
+  const remaining = new Map<CognitiveDomain, number[]>();
+  for (const turn of turns) remaining.set(domainOf(turn), [...(remaining.get(domainOf(turn)) ?? []), turn]);
+  const ordered: number[] = [];
+  let previous: CognitiveDomain | null = null;
+  while (ordered.length < turns.length) {
+    const candidates = [...remaining.entries()].filter(([domain, left]) => left.length > 0 && domain !== previous);
+    const pool = candidates.length > 0 ? candidates : [...remaining.entries()].filter(([, left]) => left.length > 0);
+    const [domain, left] = pool.reduce((best, entry) =>
+      entry[1].length > best[1].length || (entry[1].length === best[1].length && entry[1][0] < best[1][0]) ? entry : best,
+    );
+    ordered.push(left.shift()!);
+    previous = domain;
+  }
+  return ordered;
+}
+
 /** How many times a domain came up before this turn, to alternate its exercises. */
 function occurrencesBefore(cycle: CognitiveDomain[], domain: CognitiveDomain, turn: number) {
   const perCycle = cycle.filter((d) => d === domain).length;
@@ -227,7 +269,7 @@ function pickBetExercises(count: number, previous: ExerciseId[]): ExerciseId[] {
 }
 
 function fatigueCheck(block: "fatigue_open" | "fatigue_close", durationMs: number): Omit<PlannedStep, "position"> {
-  return { block, exercise: "pvt_b", domain: null, config: { ...PVT_B, durationMs }, difficultyKey: null };
+  return { block, exercise: "pvt_b", domain: null, config: { ...PVT_B, durationMs }, difficultyKey: null, levelOffset: 0 };
 }
 
 function withoutPractice(config: ExerciseConfig): ExerciseConfig {

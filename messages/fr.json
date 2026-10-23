@@ -62,7 +62,12 @@
       "lightAnyway": "Faire quand même une séance légère",
       "seeSummary": "Voir le résumé",
       "week": "Cette semaine : {betDone} {betDone, plural, one {séance BET} other {séances BET}} sur {betTarget}, {lightDone} {lightDone, plural, one {séance légère} other {séances légères}}, objectif {goal} séances.",
-      "changePreferences": "Modifier mes préférences"
+      "changePreferences": "Modifier mes préférences",
+      "assessmentDueTitle": "Semaine allégée : c'est le moment de ton bilan",
+      "assessmentDueBody": "Toutes les 4 semaines, la charge baisse le temps d'une semaine et un nouveau bilan mesure tes progrès. Tu peux le décaler de quelques jours.",
+      "takeAssessment": "Passer mon bilan",
+      "postponeAssessment": "Décaler de 2 jours",
+      "postponing": "Décalage…"
     }
   },
   "nav": {
@@ -368,7 +373,15 @@
     "cognitiveTitle": "Entraînement cognitif",
     "lightIntro": "Une dizaine de minutes : trois exercices courts, surtout sur tes points faibles, sans bloc BET ni mesure de fatigue.",
     "keySportLabel": "Ma séance de sport est une séance clé (intervalles, compétition)",
-    "keySportWarning": "Déconseillé : la fatigue mentale peut dégrader une séance de sport importante. Fais plutôt ta séance BET après le sport, ou choisis une séance légère aujourd'hui."
+    "keySportWarning": "Déconseillé : la fatigue mentale peut dégrader une séance de sport importante. Fais plutôt ta séance BET après le sport, ou choisis une séance légère aujourd'hui.",
+    "adviceTitle": "Tu sembles déjà fatigué",
+    "adviceBody": "Ta mesure de fatigue compte {lapses} lapses, au-delà de 3. Une séance complète risque d'ajouter de la fatigue sans bénéfice : allège-la, ou repose-toi aujourd'hui.",
+    "adviceLighten": "Alléger la séance",
+    "adviceRest": "Me reposer aujourd'hui",
+    "adviceContinue": "Continuer normalement",
+    "restedTitle": "Repos conseillé",
+    "restedBody": "La séance s'arrête ici et ta mesure de fatigue est conservée. Reviens demain, ou fais une séance légère si tu te sens mieux plus tard.",
+    "backHome": "Revenir à l'accueil"
   },
   "sessionSummary": {
     "title": "Résumé de la séance",
@@ -400,7 +413,12 @@
     },
     "whyTitle": "Pourquoi cette séance",
     "lightTitle": "Résumé de la séance légère",
-    "cognitiveTitle": "Résumé de l'entraînement cognitif"
+    "cognitiveTitle": "Résumé de l'entraînement cognitif",
+    "fatigueAdvice": {
+      "lightened": "Séance allégée après une mesure de fatigue élevée au départ : bloc BET réduit de moitié et plus facile.",
+      "declined": "Une séance allégée était conseillée après la mesure de départ : tu as choisi de continuer normalement.",
+      "rested": "Séance arrêtée après la mesure de départ pour te reposer, comme conseillé."
+    }
   },
   "names": {
     "exercises": {
@@ -425,7 +443,13 @@
     "noWeakness": "Aucun point faible à ton dernier bilan : le bloc ciblé fait tourner les quatre capacités.",
     "targeted": "Bloc ciblé : {domains}, de l'entraînement cognitif, hors BET.",
     "bet": "Bloc BET : {exercises}.",
-    "betRotation": "Bloc BET : {exercises}, pour changer de {replaced} de la dernière séance."
+    "betRotation": "Bloc BET : {exercises}, pour changer de {replaced} de la dernière séance.",
+    "load": {
+      "deload": "Semaine allégée : la charge descend de deux paliers pour récupérer.",
+      "up": "Nouveau palier depuis le {date} : {variable, select, betShare {le bloc BET prend une plus grande part de la séance} betLevelOffset {le bloc BET démarre à une difficulté plus élevée} other {les exercices du bloc BET sont plus longs}}.",
+      "fatigue": "Charge baissée d'un palier le {date} : tes mesures de fatigue montraient une fatigue qui s'accumule.",
+      "inactivity": "Charge baissée le {date} après plus de 7 jours sans séance : elle remontera progressivement."
+    }
   },
   "preferences": {
     "title": "Préférences",
