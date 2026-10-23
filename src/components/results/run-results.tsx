@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getFormatter, getTranslations } from "next-intl/server";
 import type { DifficultySnapshot } from "@/engine/exercises";
-import type { MinuteResult } from "@/engine/results";
+import { MinuteChart } from "./minute-chart";
 import type { RunDetails } from "@/server/training";
 
 export async function RunResults({ run }: { run: RunDetails }) {
@@ -131,53 +131,10 @@ export async function RunResults({ run }: { run: RunDetails }) {
         <section className="mt-12">
           <h2 className="type-wide text-2xl font-bold">{t("minuteTitle")}</h2>
           <p className="mt-2 max-w-[60ch] text-schiste">{t(hasLapses ? "minuteIntro" : "minuteIntroChoice")}</p>
-          <MinuteChart minutes={results.minutes} labels={{ minute: t("minuteLabel"), lapses: t("minuteLapses") }} />
+          <MinuteChart minutes={results.minutes} labels={{ minute: t("minuteLabel"), lapses: t("minuteLapses"), change: t("minuteChange"), reference: t("minuteReference") }} />
         </section>
       ) : null}
       {actions}
     </>
-  );
-}
-
-function MinuteChart({ minutes, labels }: { minutes: MinuteResult[]; labels: { minute: string; lapses: string } }) {
-  const max = Math.max(...minutes.map((m) => m.meanRtMs ?? 0), 1);
-  return (
-    <table className="mt-6 w-full border-collapse">
-      <caption className="sr-only">{labels.minute}</caption>
-      <thead className="sr-only">
-        <tr>
-          <th scope="col">{labels.minute}</th>
-          <th scope="col">ms</th>
-          <th scope="col">{labels.lapses}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {minutes.map((m) => (
-          <tr key={m.minute} className="border-b border-trait last:border-b-0">
-            <th scope="row" className="w-16 py-2 pr-3 text-left text-sm font-semibold tabular-nums">
-              {m.minute + 1}
-            </th>
-            <td className="py-2">
-              <div className="flex items-center gap-3">
-                <div
-                  className="h-4 rounded-sm bg-ardoise"
-                  style={{ width: `${((m.meanRtMs ?? 0) / max) * 100}%`, minWidth: m.meanRtMs ? 4 : 0 }}
-                />
-                <span className="w-16 shrink-0 text-sm whitespace-nowrap tabular-nums">
-                  {m.meanRtMs === null ? "—" : `${Math.round(m.meanRtMs)} ms`}
-                </span>
-              </div>
-            </td>
-            <td className="w-28 py-2 text-right text-sm whitespace-nowrap tabular-nums">
-              {m.lapses > 0 ? (
-                <span className="rounded-sm bg-chrono px-1.5 py-0.5 font-semibold text-ardoise">
-                  {m.lapses} {labels.lapses}
-                </span>
-              ) : null}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }

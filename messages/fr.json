@@ -74,7 +74,8 @@
     "freePractice": "Entraînement libre",
     "assessment": "Bilan",
     "session": "Séance BET",
-    "preferences": "Préférences"
+    "preferences": "Préférences",
+    "history": "Historique"
   },
   "freePractice": {
     "title": "Entraînement libre",
@@ -135,7 +136,9 @@
     "minuteIntroChoice": "Ton temps de réaction moyen à chaque minute. Une barre qui s'allonge montre le moment où ta concentration baisse.",
     "congruencyEffect": "Effet d'interférence : {value} ms. C'est l'écart entre ton temps de réaction sur les essais en conflit et sur les autres : plus il est faible, mieux tu résistes à la distraction.",
     "difficultyChoice": "niveau {level} ({incongruent} d'essais en conflit, {seconds} s pour répondre)",
-    "difficultySpeed": "niveau {level} ({seconds} s pour répondre)"
+    "difficultySpeed": "niveau {level} ({seconds} s pour répondre)",
+    "minuteChange": "Écart avec la première minute",
+    "minuteReference": "réf."
   },
   "player": {
     "durationLabel": "Durée de l'exercice",
@@ -466,5 +469,64 @@
     "saving": "Enregistrement…",
     "saved": "Préférences enregistrées.",
     "error": "L'enregistrement a échoué. Réessaie."
+  },
+  "exerciseTitles": {
+    "pvt": "Vigilance (PVT)",
+    "pvt_b": "Vigilance (PVT-B)",
+    "nback": "N-back",
+    "stroop": "Stroop",
+    "flanker": "Flanker",
+    "choice_rt": "Temps de réaction à choix",
+    "symbol_digit": "Symboles-chiffres"
+  },
+  "history": {
+    "title": "Historique",
+    "intro": "Toutes tes séances, des plus récentes aux plus anciennes : séances BET, séances légères, bilans et entraînement libre.",
+    "loading": "Chargement de l'historique…",
+    "empty": "Aucune séance pour l'instant. Ta première séance apparaîtra ici.",
+    "startPractice": "Commencer par un exercice",
+    "noOlder": "Pas de séance plus ancienne.",
+    "latest": "Revenir aux plus récentes",
+    "older": "Séances plus anciennes",
+    "minutes": "{minutes} min",
+    "kinds": {
+      "free_practice": "Entraînement libre",
+      "bet": "Séance BET",
+      "cognitive": "Entraînement cognitif",
+      "light": "Séance légère",
+      "assessment": "Bilan"
+    },
+    "statuses": {
+      "incomplete": "Incomplète",
+      "in_progress": "En cours"
+    },
+    "statusNotes": {
+      "incomplete": "Séance interrompue avant la fin : les exercices faits sont conservés.",
+      "in_progress": "Séance en cours ou abandonnée sans être fermée."
+    },
+    "contexts": {
+      "after_sport": "après le sport",
+      "before_sport": "avant le sport",
+      "rest": "au repos"
+    },
+    "blocks": {
+      "fatigue_open": "Mesure de fatigue",
+      "targeted": "Bloc ciblé",
+      "bet": "Bloc BET",
+      "fatigue_close": "Mesure de fatigue finale",
+      "cold": "À froid",
+      "fatigued": "Fatigué"
+    },
+    "seeSummary": "Voir le résumé de la séance",
+    "seeAssessment": "Voir les résultats du bilan",
+    "runIncomplete": "Exercice non terminé : pas de résultats.",
+    "runPending": "Résultats pas encore calculés.",
+    "meanRt": "Temps de réaction",
+    "accuracy": "Précision",
+    "variability": "Variabilité",
+    "lapses": "Lapses",
+    "errors": "Erreurs",
+    "difficulty": "Niveau de difficulté : {start} au départ, {end} à la fin.",
+    "runDetail": "Détail de l'exercice"
   }
 }
