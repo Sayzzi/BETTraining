@@ -1,9 +1,11 @@
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { ProgressView } from "@/components/progress/progress-view";
+import { RegularityView } from "@/components/progress/regularity-view";
 import { db } from "@/db/client";
 import { getCurrentUser } from "@/lib/current-user";
 import { getProgress } from "@/server/progress";
+import { getRegularity } from "@/server/regularity";
 
 export default async function ProgressPage() {
   const t = await getTranslations("progress");
@@ -21,5 +23,11 @@ export default async function ProgressPage() {
 
 async function Data() {
   const user = await getCurrentUser();
-  return <ProgressView progress={await getProgress(db, user.id)} />;
+  const [regularity, progress] = await Promise.all([getRegularity(db, user.id), getProgress(db, user.id)]);
+  return (
+    <div className="space-y-16">
+      <RegularityView regularity={regularity} />
+      <ProgressView progress={progress} />
+    </div>
+  );
 }

@@ -549,5 +549,33 @@
     "resistanceShort": "Résistance",
     "date": "Bilan",
     "scoreNote": "Scores à froid : bonnes réponses par seconde de réaction. La ligne pointillée du graphique marque 100 %, aucune baisse sous la fatigue."
+  },
+  "regularity": {
+    "title": "Régularité",
+    "streakLabel": "Série en cours",
+    "days": "{count, plural, =0 {0 jour} one {# jour} other {# jours}}",
+    "restIncluded": "{count, plural, one {dont # jour de repos prévu} other {dont # jours de repos prévus}}",
+    "goalLabel": "Objectif de la semaine",
+    "goalHistory": "Objectif atteint ou non, semaine par semaine",
+    "weekTitle": "Semaine du {date} : {done} séances sur {goal}",
+    "calendarLabel": "Les 8 dernières semaines",
+    "kinds": {
+      "bet": "Séance BET",
+      "light": "Séance légère",
+      "free_practice": "Entraînement libre",
+      "assessment": "Bilan"
+    },
+    "plannedRest": "Repos prévu",
+    "nothing": "Aucune séance",
+    "loadTitle": "Charge et ressentis",
+    "loadIntro": "La charge réalisée de chaque semaine (effort perçu × durée de tes séances BET et légères), la semaine en cours en jaune.",
+    "loadSpike": "Ta charge de cette semaine dépasse de moitié la moyenne des trois semaines précédentes : surveille ta fatigue et pense à récupérer.",
+    "ratings": {
+      "postFatigue": "Fatigue mentale après la séance",
+      "perceivedEffort": "Effort perçu",
+      "motivation": "Motivation"
+    },
+    "noRatings": "Tes ressentis apparaîtront après ta première séance BET ou légère.",
+    "ratingsNote": "Une fatigue qui monte de séance en séance avec une motivation qui baisse est un signe de surmenage : allège ou repose-toi."
   }
 }

@@ -67,8 +67,8 @@ export function LineChart({
       <table className="sr-only">
         <caption>{label}</caption>
         <tbody>
-          {points.map((p) => (
-            <tr key={p.x}>
+          {points.map((p, i) => (
+            <tr key={`${p.x}-${i}`}>
               <th scope="row">{formatX(p.x)}</th>
               <td>{formatY(p.y)}</td>
             </tr>
