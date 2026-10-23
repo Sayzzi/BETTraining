@@ -75,7 +75,8 @@
     "assessment": "Bilan",
     "session": "Séance BET",
     "preferences": "Préférences",
-    "history": "Historique"
+    "history": "Historique",
+    "progress": "Progression"
   },
   "freePractice": {
     "title": "Entraînement libre",
@@ -528,5 +529,25 @@
     "errors": "Erreurs",
     "difficulty": "Niveau de difficulté : {start} au départ, {end} à la fin.",
     "runDetail": "Détail de l'exercice"
+  },
+  "progress": {
+    "title": "Progression",
+    "loading": "Chargement de ta progression…",
+    "levelsTitle": "Niveau par capacité",
+    "levelsIntro": "Le niveau de difficulté que tu tiens dans les exercices adaptatifs, de 1 à 15, là où tu réussis environ 80 % des essais. Chaque point fait la moyenne de tes 5 derniers exercices sur la capacité, en entraînement libre et dans le bloc ciblé.",
+    "outOf": "sur {max}",
+    "noLevel": "Pas encore de données : fais un exercice qui entraîne cette capacité.",
+    "levelChartLabel": "Niveau en {domain} au fil du temps",
+    "attentionNote": "Mesurée par le flanker : le PVT n'a pas de niveau de difficulté.",
+    "strength": "Point fort",
+    "weakness": "Point faible",
+    "assessmentsTitle": "Bilans",
+    "assessmentsIntro": "Tes bilans successifs : la résistance à la fatigue et le score à froid de chaque capacité.",
+    "noAssessment": "Aucun bilan terminé pour l'instant.",
+    "takeAssessment": "Passer mon bilan",
+    "resistanceTitle": "Résistance à la fatigue",
+    "resistanceShort": "Résistance",
+    "date": "Bilan",
+    "scoreNote": "Scores à froid : bonnes réponses par seconde de réaction. La ligne pointillée du graphique marque 100 %, aucune baisse sous la fatigue."
   }
 }
