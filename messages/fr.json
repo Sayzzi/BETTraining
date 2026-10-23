@@ -15,7 +15,8 @@
     "submit": "Se connecter",
     "pending": "Connexion…",
     "noAccount": "Pas encore de compte ?",
-    "toSignUp": "Créer un compte"
+    "toSignUp": "Créer un compte",
+    "science": "Ce que dit la science sur le BET"
   },
   "signUp": {
     "title": "Créer un compte",
@@ -76,7 +77,8 @@
     "session": "Séance BET",
     "preferences": "Préférences",
     "history": "Historique",
-    "progress": "Progression"
+    "progress": "Progression",
+    "science": "La science"
   },
   "freePractice": {
     "title": "Entraînement libre",
@@ -577,5 +579,77 @@
     },
     "noRatings": "Tes ressentis apparaîtront après ta première séance BET ou légère.",
     "ratingsNote": "Une fatigue qui monte de séance en séance avec une motivation qui baisse est un signe de surmenage : allège ou repose-toi."
+  },
+  "science": {
+    "metaTitle": "La science du BET",
+    "openApp": "Ouvrir l'appli",
+    "title": "Ce que dit la science",
+    "intro": "Le Brain Endurance Training est une piste sérieuse, mais jeune et encore discutée. Voici ce que les études montrent, ce qu'elles ne montrent pas, et ce que BETTraining en fait.",
+    "updated": "Synthèse des publications disponibles en octobre 2026.",
+    "what": {
+      "title": "Le BET, c'est quoi ?",
+      "p1": "Le BET consiste à répéter des tâches cognitives exigeantes, comme le Stroop ou le n-back, en plus de l'entraînement physique : avant, pendant ou après la séance de sport. L'idée est d'augmenter la charge totale d'entraînement sans ajouter de charge physique.",
+      "p2": "Il s'appuie sur le modèle de Samuele Marcora : on arrêterait un effort d'endurance quand il paraît trop dur, plus que par épuisement des muscles. En 2009, 90 minutes de tâche cognitive avant un test sur vélo ont réduit d'environ 15 % le temps tenu jusqu'à l'épuisement, sans changer la fréquence cardiaque.",
+      "p3": "Les mécanismes proposés dans le cerveau restent des hypothèses : aucun n'a été démontré chez l'humain dans le cadre du BET."
+    },
+    "shown": {
+      "title": "Ce que les études montrent",
+      "fatigued": "Un effet sur l'endurance surtout quand on est testé en état de fatigue mentale. Trois méta-analyses de 2026 le trouvent grand dans cette situation, et faible ou nul à l'état frais.",
+      "sport": "Un effet seulement quand le BET est couplé au sport. La seule étude qui a testé l'entraînement cognitif seul, au repos, n'a trouvé aucun gain d'endurance, sur deux expériences.",
+      "certainty": "Avec une certitude faible à très faible : petits groupes, peu d'essais enregistrés à l'avance, et des participants qui savent toujours dans quel groupe ils sont."
+    },
+    "chart": {
+      "title": "La taille de l'effet, revue par revue",
+      "reading": "Chaque point est le résultat moyen d'une méta-analyse, avec son intervalle de confiance quand il est publié. 0 signifie aucun effet ; à partir de 0,8, on parle d'un grand effet.",
+      "groups": {
+        "fatigued": "Endurance testée en état de fatigue mentale",
+        "fresh": "Endurance testée à l'état frais",
+        "effort": "Effort perçu pendant l'endurance"
+      },
+      "noEffect": "Aucun effet",
+      "large": "Grand effet",
+      "source": "Revue",
+      "value": "Effet",
+      "interval": "Intervalle de confiance à 95 %",
+      "notReported": "non publié",
+      "range": "{low} à {high}",
+      "freshNote": "Le chiffre de Wang 2026 à l'état frais tombe à 0,22 sans une seule étude, et son intervalle passe par zéro."
+    },
+    "notShown": {
+      "title": "Ce qui n'est pas prouvé",
+      "effort": "Une baisse de l'effort perçu. C'est pourtant la promesse centrale du modèle : en moyenne, l'effet est nul.",
+      "vo2max": "Un gain de VO2max. Aucune étude ne l'a vue changer avec le BET.",
+      "premise": "La prémisse elle-même. Deux réplications enregistrées à l'avance n'ont trouvé aucun effet de la fatigue mentale sur l'endurance, et une méta-analyse corrigée du biais de publication ramène cet effet presque à zéro.",
+      "independence": "Une validation indépendante. La plupart des études viennent de trois ou quatre groupes de recherche, dont un chercheur qui a co-développé une appli commerciale de BET utilisée dans ses propres essais.",
+      "practice": "Que l'effet dépasse l'habitude de la tâche : le groupe BET s'exerce sur des tâches proches de celles qui servent à le fatiguer le jour du test.",
+      "transfer": "Un transfert au quotidien. Les gains de l'entraînement cognitif se transfèrent peu au-delà des tâches entraînées."
+    },
+    "app": {
+      "title": "Ce que BETTraining en fait",
+      "rest": "Une séance faite au repos compte comme de l'entraînement cognitif, pas comme du BET, et l'appli te le dit.",
+      "measure": "Le bilan mesure ta propre résistance à la fatigue, à froid puis après un bloc BET. C'est un chiffre sur toi, pas une promesse.",
+      "load": "La charge monte d'un palier toutes les deux semaines, comme dans les protocoles étudiés, et baisse quand la mesure de fatigue montre que tu es trop fatigué.",
+      "promise": "Aucune promesse de performance : l'appli te montre ce que tu mesures, séance après séance."
+    },
+    "sources": {
+      "title": "Sources",
+      "intro": "Les études principales sur lesquelles s'appuie cette page.",
+      "notes": {
+        "marcora2009": "L'expérience fondatrice : la fatigue mentale réduit le temps tenu sur vélo.",
+        "basner2011": "Le PVT-B de 3 minutes, la mesure de fatigue utilisée à chaque séance.",
+        "simons2016": "Revue : les jeux cérébraux se transfèrent peu au-delà des tâches entraînées.",
+        "vanCutsem2017": "Revue : la fatigue mentale réduit l'endurance, pas la force.",
+        "brown2020": "Méta-analyse de 73 études sur l'effet immédiat de la fatigue mentale.",
+        "holgado2020": "Méta-analyse corrigée du biais de publication : effet presque nul.",
+        "holgado2021": "Réplication de l'expérience de 2009 : aucun effet.",
+        "staiano2023": "Deux essais randomisés sur des cyclistes, menés avec une appli commerciale de BET.",
+        "deLimaJunior2023": "Essai de 12 semaines sur des coureurs : le BET ne fait pas mieux.",
+        "dallaway2025": "Entraînement cognitif seul, au repos : aucun gain d'endurance.",
+        "yu2026": "Méta-analyse : effet grand en état fatigué, faible à l'état frais.",
+        "zheng2026": "Méta-analyse : effet nul à l'état frais et sur l'effort perçu.",
+        "wang2026": "Méta-analyse : certitude très faible à modérée.",
+        "qing2026": "Revue : la plupart des études viennent des mêmes groupes."
+      }
+    }
   }
 }
