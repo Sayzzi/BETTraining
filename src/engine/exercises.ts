@@ -14,6 +14,8 @@ import type { Trial } from "./trial";
 
 export type CognitiveDomain = "sustained_attention" | "working_memory" | "processing_speed" | "inhibition";
 
+export const DOMAINS: CognitiveDomain[] = ["sustained_attention", "working_memory", "inhibition", "processing_speed"];
+
 export type ExerciseId = "pvt" | "pvt_b" | "nback" | "stroop" | "flanker" | "choice_rt" | "symbol_digit";
 
 export type ExerciseDefinition = {
