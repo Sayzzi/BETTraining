@@ -19,7 +19,9 @@ export function PlanExplanationText({ explanation }: { explanation: PlanExplanat
           ? t("weaknesses", { count: explanation.weaknesses.length, domains: domains(explanation.weaknesses) })
           : t("noWeakness")}{" "}
       {t("targeted", { domains: domains(targeted) })}{" "}
-      {explanation.replacedBetExercises.length > 0
+      {explanation.betExercises.length === 0
+        ? null
+        : explanation.replacedBetExercises.length > 0
         ? t("betRotation", {
             exercises: exercises(explanation.betExercises),
             replaced: exercises(explanation.replacedBetExercises),

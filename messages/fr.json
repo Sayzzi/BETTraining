@@ -48,13 +48,28 @@
     "lastAssessment": "Ton dernier bilan date du {date}. Ta résistance à la fatigue était de {resistance}.",
     "seeAssessment": "Voir mon bilan",
     "retakeAssessment": "Refaire un bilan",
-    "startSession": "Lancer ma séance BET",
-    "nextSessionTitle": "Ta prochaine séance de 30 min"
+    "daily": {
+      "betTitle": "Aujourd'hui : séance BET",
+      "lightTitle": "Aujourd'hui : séance légère",
+      "restTitle": "Aujourd'hui : repos",
+      "doneTitle": "Séance du jour faite",
+      "doneBody": "{kind, select, bet {Ta séance BET du jour est terminée.} other {Ta séance légère du jour est terminée.}} Tu peux encore t'entraîner librement, sans que cela remplace ta prochaine séance.",
+      "lightBody": "Une dizaine de minutes d'exercices courts, surtout sur tes points faibles, sans bloc BET.",
+      "restBody": "Tes séances de la semaine sont faites ou bien réparties : récupérer fait partie de l'entraînement. L'entraînement libre reste ouvert si tu en as envie.",
+      "startBet": "Lancer ma séance BET",
+      "startLight": "Lancer ma séance légère",
+      "betInstead": "Faire plutôt une séance BET",
+      "lightAnyway": "Faire quand même une séance légère",
+      "seeSummary": "Voir le résumé",
+      "week": "Cette semaine : {betDone} {betDone, plural, one {séance BET} other {séances BET}} sur {betTarget}, {lightDone} {lightDone, plural, one {séance légère} other {séances légères}}, objectif {goal} séances.",
+      "changePreferences": "Modifier mes préférences"
+    }
   },
   "nav": {
     "freePractice": "Entraînement libre",
     "assessment": "Bilan",
-    "session": "Séance BET"
+    "session": "Séance BET",
+    "preferences": "Préférences"
   },
   "freePractice": {
     "title": "Entraînement libre",
@@ -322,7 +337,7 @@
     "contextHints": {
       "after_sport": "Le moment recommandé : juste après une séance de sport, quand la fatigue est déjà là.",
       "before_sport": "Évite de placer la séance avant une séance de sport importante : elle peut la dégrader.",
-      "rest": "Sans activité physique, la séance entraîne tes capacités cognitives, mais les études ne montrent pas d'effet sur l'endurance."
+      "rest": "Au repos, sans activité physique, la séance devient de l'entraînement cognitif : elle entraîne tes capacités, mais les études ne montrent pas d'effet BET sur l'endurance. Pour en faire du BET, couple-la à une activité physique légère, comme la marche ou le home-trainer."
     },
     "preFatigueLabel": "Ta fatigue mentale en ce moment",
     "fatigueLow": "0 : aucune",
@@ -348,7 +363,12 @@
     "errorTitle": "La séance n'a pas pu être enregistrée",
     "errorBody": "Vérifie ta connexion. Les réponses déjà envoyées sont conservées.",
     "backToSetup": "Revenir à la séance",
-    "planTitle": "Ce que prévoit l'algorithme"
+    "planTitle": "Ce que prévoit l'algorithme",
+    "lightTitle": "Séance légère",
+    "cognitiveTitle": "Entraînement cognitif",
+    "lightIntro": "Une dizaine de minutes : trois exercices courts, surtout sur tes points faibles, sans bloc BET ni mesure de fatigue.",
+    "keySportLabel": "Ma séance de sport est une séance clé (intervalles, compétition)",
+    "keySportWarning": "Déconseillé : la fatigue mentale peut dégrader une séance de sport importante. Fais plutôt ta séance BET après le sport, ou choisis une séance légère aujourd'hui."
   },
   "sessionSummary": {
     "title": "Résumé de la séance",
@@ -369,7 +389,8 @@
     "exercises": {
       "pvt": "Vigilance (PVT)",
       "flanker": "Flanker",
-      "choice_rt": "Temps de réaction à choix"
+      "choice_rt": "Temps de réaction à choix",
+      "nback": "N-back"
     },
     "home": "Retour à l'accueil",
     "contextsInline": {
@@ -377,7 +398,9 @@
       "before_sport": "avant le sport",
       "rest": "au repos"
     },
-    "whyTitle": "Pourquoi cette séance"
+    "whyTitle": "Pourquoi cette séance",
+    "lightTitle": "Résumé de la séance légère",
+    "cognitiveTitle": "Résumé de l'entraînement cognitif"
   },
   "names": {
     "exercises": {
@@ -398,10 +421,26 @@
   },
   "planExplanation": {
     "noRanking": "Pas encore de points forts ni de points faibles : ils apparaîtront à ton deuxième bilan. D'ici là, le bloc ciblé fait tourner les quatre capacités.",
-    "weaknesses": "{count, plural, one {Point faible à ton dernier bilan : {domains}. Il revient deux fois plus souvent dans le bloc ciblé.} other {Points faibles à ton dernier bilan : {domains}. Ils reviennent deux fois plus souvent dans le bloc ciblé.}}",
+    "weaknesses": "{count, plural, one {Point faible à ton dernier bilan : {domains}. Il revient plus souvent dans le bloc ciblé.} other {Points faibles à ton dernier bilan : {domains}. Ils reviennent plus souvent dans le bloc ciblé.}}",
     "noWeakness": "Aucun point faible à ton dernier bilan : le bloc ciblé fait tourner les quatre capacités.",
     "targeted": "Bloc ciblé : {domains}, de l'entraînement cognitif, hors BET.",
     "bet": "Bloc BET : {exercises}.",
     "betRotation": "Bloc BET : {exercises}, pour changer de {replaced} de la dernière séance."
+  },
+  "preferences": {
+    "title": "Préférences",
+    "loading": "Chargement…",
+    "intro": "Ces réglages décident de la séance du jour. Les études ne montrent pas de gain au-delà de 4 à 5 séances BET par semaine.",
+    "betLabel": "Séances BET par semaine",
+    "betHint": "Les jours restants, l'appli propose une séance légère ou du repos.",
+    "goalLabel": "Objectif hebdomadaire",
+    "goalHint": "Nombre de séances par semaine, BET et légères comprises : {light, plural, =0 {aucune séance légère} one {# séance légère} other {# séances légères}} en plus des séances BET.",
+    "durationLabel": "Durée par défaut d'une séance BET",
+    "durationHint": "Préselectionnée au lancement de la séance, tu peux toujours la changer.",
+    "minutes": "{minutes} min",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Préférences enregistrées.",
+    "error": "L'enregistrement a échoué. Réessaie."
   }
 }

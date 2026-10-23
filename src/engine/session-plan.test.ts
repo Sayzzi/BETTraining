@@ -6,7 +6,9 @@ import type { RtResults } from "./results";
 import {
   BET_DURATIONS_MIN,
   fatigueCheckChange,
+  LIGHT_SESSION_MIN,
   planBetSession,
+  planLightSession,
   sessionLoad,
   type BetHistory,
   type PlannedStep,
@@ -194,6 +196,40 @@ describe("plan explanation", () => {
 
   it("says when there is no ranking yet", () => {
     expect(planBetSession(30, FIRST).explanation).toMatchObject({ rankingAvailable: false, weaknesses: [] });
+  });
+});
+
+describe("light session", () => {
+  it("lasts about 10 minutes of three short targeted exercises, with no BET block or fatigue check", () => {
+    const { steps } = planLightSession({ lightSessionCount: 0, classification: {} });
+    expect(steps.map((s) => s.block)).toEqual(["targeted", "targeted", "targeted"]);
+    const total = steps.reduce((sum, s) => sum + s.config.durationMs, 0) / 60_000;
+    expect(total).toBeCloseTo(LIGHT_SESSION_MIN, 1);
+    for (const step of steps) {
+      const config = step.config as Record<string, unknown>;
+      expect(config.practiceTrials ?? config.practiceScoredTrials ?? 0).toBe(0);
+    }
+  });
+
+  it("works mostly on weaknesses, three times as often as strengths", () => {
+    const counts: Record<string, number> = {};
+    const classification = {
+      sustained_attention: "strength",
+      working_memory: "weakness",
+      inhibition: "strength",
+      processing_speed: "strength",
+    } as const;
+    for (let session = 0; session < 12; session++) {
+      for (const step of planLightSession({ lightSessionCount: session, classification }).steps) {
+        counts[step.domain!] = (counts[step.domain!] ?? 0) + 1;
+      }
+    }
+    expect(counts.working_memory).toBe(3 * counts.inhibition);
+  });
+
+  it("explains the plan without a BET part", () => {
+    const { explanation } = planLightSession({ lightSessionCount: 0, classification: { inhibition: "weakness" } });
+    expect(explanation).toMatchObject({ weaknesses: ["inhibition"], betExercises: [], replacedBetExercises: [] });
   });
 });
 

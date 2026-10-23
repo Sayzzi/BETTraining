@@ -20,6 +20,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/entrainement" className="text-sm font-semibold underline-offset-4 hover:underline">
             {t("nav.freePractice")}
           </Link>
+          <Link href="/preferences" className="text-sm font-semibold underline-offset-4 hover:underline">
+            {t("nav.preferences")}
+          </Link>
           <SignOutButton />
         </nav>
       </header>

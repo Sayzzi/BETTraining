@@ -213,3 +213,20 @@ export const assessment = pgTable(
   },
   (table) => [index("assessment_user_started_idx").on(table.userId, table.startedAt)],
 );
+
+/** Training preferences; a missing row means the defaults. */
+export const userPreferences = pgTable("user_preferences", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  betSessionsPerWeek: integer("bet_sessions_per_week").notNull(),
+  defaultDurationMin: integer("default_duration_min").notNull(),
+  /** Sessions per week, BET and light together. */
+  weeklyGoal: integer("weekly_goal").notNull(),
+  /** IANA time zone used to tell calendar days apart. */
+  timeZone: text("time_zone").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
