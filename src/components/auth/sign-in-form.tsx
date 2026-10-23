@@ -55,6 +55,11 @@ export function SignInForm() {
           {t("toSignUp")}
         </Link>
       </p>
+      <p className="mt-3 text-sm">
+        <Link href="/la-science" className="font-semibold text-ardoise underline underline-offset-4">
+          {t("science")}
+        </Link>
+      </p>
     </>
   );
 }

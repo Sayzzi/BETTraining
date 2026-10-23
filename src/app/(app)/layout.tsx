@@ -29,6 +29,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/preferences" className="text-sm font-semibold underline-offset-4 hover:underline">
             {t("nav.preferences")}
           </Link>
+          <Link href="/la-science" className="text-sm font-semibold underline-offset-4 hover:underline">
+            {t("nav.science")}
+          </Link>
           <SignOutButton />
         </nav>
       </header>
